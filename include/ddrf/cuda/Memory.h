@@ -156,10 +156,11 @@ namespace ddrf
 				inline auto copy(Dest& dest, const Src& src, std::size_t width, std::size_t height, std::size_t depth) const -> void
 				{
 					auto parms = cudaMemcpy3DParms{0};
-					// using src.pitch() instead of width because cudaMemcpy3D interprets the pointer's elements as unsigned char
-					parms.srcPtr = make_cudaPitchedPtr(reinterpret_cast<unsigned char*>(src.get()), src.pitch(), src.pitch(), height);
-					parms.dstPtr = make_cudaPitchedPtr(reinterpret_cast<unsigned char*>(dest.get()), dest.pitch(), dest.pitch(), height);
-					parms.extent = make_cudaExtent(width, height, depth);
+					auto uchar_width = width * sizeof(typename Src::element_type)/sizeof(unsigned char);
+					// using uchar_width instead of width because cudaMemcpy3D interprets the pointer's elements as unsigned char
+					parms.srcPtr = make_cudaPitchedPtr(reinterpret_cast<unsigned char*>(src.get()), src.pitch(), uchar_width, height);
+					parms.dstPtr = make_cudaPitchedPtr(reinterpret_cast<unsigned char*>(dest.get()), dest.pitch(), uchar_width, height);
+					parms.extent = make_cudaExtent(uchar_width, height, depth);
 					parms.kind = detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value;
 
 					check(cudaMemcpy3D(&parms));
@@ -209,9 +210,10 @@ namespace ddrf
 				inline auto copy(Dest& dest, const Src& src, std::size_t width, std::size_t height, std::size_t depth) const -> void
 				{
 					auto parms = cudaMemcpy3DParms{0};
-					parms.srcPtr = make_cudaPitchedPtr(reinterpret_cast<unsigned char*>(src.get()), src.pitch(), src.pitch(), height);
-					parms.dstPtr = make_cudaPitchedPtr(reinterpret_cast<unsigned char*>(dest.get()), dest.pitch(), dest.pitch(), height);
-					parms.extent = make_cudaExtent(width, height, depth);
+					auto uchar_width = width * sizeof(typename Src::element_type)/sizeof(unsigned char);
+					parms.srcPtr = make_cudaPitchedPtr(reinterpret_cast<unsigned char*>(src.get()), src.pitch(), uchar_width, height);
+					parms.dstPtr = make_cudaPitchedPtr(reinterpret_cast<unsigned char*>(dest.get()), dest.pitch(), uchar_width, height);
+					parms.extent = make_cudaExtent(uchar_width, height, depth);
 					parms.kind = detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value;
 
 					check(cudaMemcpy3DAsync(&parms, stream_));
