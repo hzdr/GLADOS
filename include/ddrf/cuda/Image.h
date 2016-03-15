@@ -6,6 +6,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 #include "Memory.h"
 
@@ -18,7 +19,7 @@ namespace ddrf
 		{
 			public:
 				using value_type = Data;
-				using pointer_type = pitched_device_ptr<Data, CopyPolicy, false>;
+				using pointer_type = pitched_device_ptr<Data, CopyPolicy, std::false_type>;
 				using size_type = std::size_t;
 
 			public:
@@ -46,7 +47,7 @@ namespace ddrf
 				}
 
 				template <typename Source>
-				auto copy(pointer_type& dest, Source& src, size_type width, size_type height) -> void
+				auto copy(pointer_type& dest, Source& src, size_type, size_type) -> void
 				{
 					dest = src;
 				}

@@ -20,7 +20,7 @@ namespace ddrf
 			 * data type if needed.
 			 */
 			template <typename T>
-			auto loadImage(const std::string& path) -> decltype(Implementation::template loadImage<T>(path))
+			auto loadImage(const std::string& path) -> Image<image_type>
 			{
 				return Implementation::template loadImage<T>(path);
 			}

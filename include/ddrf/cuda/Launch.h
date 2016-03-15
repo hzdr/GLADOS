@@ -17,6 +17,9 @@ namespace ddrf
 				if(multiple == 0)
 					return num;
 
+				if(num == 0)
+					return multiple;
+
 				auto remainder = num % multiple;
 				if(remainder == 0)
 					return num;

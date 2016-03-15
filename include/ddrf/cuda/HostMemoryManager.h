@@ -2,6 +2,7 @@
 #define CUDA_HOSTMEMORYMANAGER_H_
 
 #include <cstddef>
+#include <type_traits>
 
 #include "Memory.h"
 
@@ -14,7 +15,7 @@ namespace ddrf
 		{
 			public:
 				using value_type = T;
-				using pointer_type = pitched_host_ptr<T, CopyPolicy, false>;
+				using pointer_type = pitched_host_ptr<T, CopyPolicy, std::false_type>;
 				using size_type = std::size_t;
 
 			public:

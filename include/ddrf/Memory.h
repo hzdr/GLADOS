@@ -160,7 +160,6 @@ namespace ddrf
 			inline auto operator=(const ptr<T, CopyPolicy, OtherPtr>& rhs) -> ptr&
 			{
 				base::copy(*this, rhs, size_);
-				// CopyPolicy::copy(this->ptr_, rhs.ptr_, size_);
 				return *this;
 			}
 
@@ -173,7 +172,7 @@ namespace ddrf
 			std::size_t size_;
 	};
 
-	template <class T, class CopyPolicy, bool is3D, class Ptr>
+	template <class T, class CopyPolicy, class is3D, class Ptr>
 	class pitched_ptr : public base_ptr<T, CopyPolicy, Ptr>
 	{
 		private:
@@ -186,7 +185,7 @@ namespace ddrf
 			using underlying_type = typename base::underlying_type;
 
 			static constexpr auto has_pitch = true;
-			static constexpr auto is3DPtr = is3D;
+			static constexpr auto is3DPtr = is3D::value;
 
 		public:
 			constexpr pitched_ptr() noexcept
@@ -205,8 +204,8 @@ namespace ddrf
 			{}
 
 			pitched_ptr(pitched_ptr&& other) noexcept
-			: pitch_{other.pitch_}, width_{other.width_}, height_{other.height_}, depth_{other.depth_}
-			, base(std::move(other))
+			: base(std::move(other))
+			, pitch_{other.pitch_}, width_{other.width_}, height_{other.height_}, depth_{other.depth_}
 			{}
 
 			~pitched_ptr() = default;
@@ -228,16 +227,16 @@ namespace ddrf
 			inline auto depth() const noexcept -> std::size_t { return depth_; }
 
 			template <class OtherPtr>
-			inline auto operator=(const pitched_ptr<T, CopyPolicy, false, OtherPtr>& rhs)
-			-> typename std::enable_if<!is3D, pitched_ptr&>::type
+			inline auto operator=(const pitched_ptr<T, CopyPolicy, std::false_type, OtherPtr>& rhs)
+			-> typename std::enable_if<!is3D::value, pitched_ptr&>::type
 			{
 				base::copy(*this, rhs, width_, height_);
 				return *this;
 			}
 
 			/*template <class OtherPtr>
-			inline auto operator=(const pitched_ptr<T, CopyPolicy, true, OtherPtr>& rhs)
-			-> typename std::enable_if<is3D, pitched_ptr&>::type
+			inline auto operator=(const pitched_ptr<T, CopyPolicy, std::true_type, OtherPtr>& rhs)
+			-> typename std::enable_if<is3D::value, pitched_ptr&>::type
 			{
 				base::copy(*this, rhs, width_, height_, depth_);
 				return *this;

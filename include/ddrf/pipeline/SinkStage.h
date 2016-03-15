@@ -44,7 +44,9 @@ namespace ddrf
 						auto img = this->input_queue_.take();
 						if(img.valid())
 						{
-							ImageSaver::template saveImage<float>(std::move(img), path_ + prefix_ + std::to_string(counter));
+							auto path = path_ + prefix_ + std::to_string(counter);
+							// BOOST_LOG_TRIVIAL(debug) << "SinkStage: Saving to " << path;
+							ImageSaver::saveImage(std::move(img), path);
 							++counter;
 						}
 						else

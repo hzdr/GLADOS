@@ -147,7 +147,7 @@ namespace ddrf
 				{
 					check(cudaMemcpy2D(dest.get(), dest.pitch(),
 										src.get(), src.pitch(),
-										width, height,
+										width * sizeof(typename Src::element_type), height,
 										detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value));
 				}
 
@@ -200,7 +200,7 @@ namespace ddrf
 				{
 					check(cudaMemcpy2DAsync(dest.get(), dest.pitch(),
 											src.get(), src.pitch(),
-											width, height,
+											width * sizeof(typename Src::element_type), height,
 											detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value, stream_));
 				}
 
@@ -224,63 +224,65 @@ namespace ddrf
 		template <class T, class CopyPolicy> using device_ptr = ddrf::ptr<T, CopyPolicy, detail::unique_device_ptr<T>>;
 		template <class T, class CopyPolicy> using host_ptr = ddrf::ptr<T, CopyPolicy, detail::unique_host_ptr<T>>;
 
-		template <class T, class CopyPolicy, bool is3D> using pitched_device_ptr = ddrf::pitched_ptr<T, CopyPolicy, is3D, detail::unique_device_ptr<T>>;
-		template <class T, class CopyPolicy, bool is3D> using pitched_host_ptr = ddrf::pitched_ptr<T, CopyPolicy, is3D, detail::unique_host_ptr<T>>;
+		template <class T, class CopyPolicy, class is3D> using pitched_device_ptr = ddrf::pitched_ptr<T, CopyPolicy, is3D, detail::unique_device_ptr<T>>;
+		template <class T, class CopyPolicy, class is3D> using pitched_host_ptr = ddrf::pitched_ptr<T, CopyPolicy, is3D, detail::unique_host_ptr<T>>;
 
 		/*
 		 * Array types with unknown bounds
 		 */
 		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_device_ptr(std::size_t size) -> device_ptr<T, CopyPolicy>
+		auto make_device_ptr(std::size_t length) -> device_ptr<T, CopyPolicy>
 		{
 			auto p = static_cast<T*>(nullptr);
-			check(cudaMalloc(&p, size * sizeof(T)));
+			auto size = length * sizeof(T);
+			check(cudaMalloc(&p, size));
 			return device_ptr<T, CopyPolicy>(detail::unique_device_ptr<T>(p), size);
 		}
 
 		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_host_ptr(std::size_t size) -> host_ptr<T, CopyPolicy>
+		auto make_host_ptr(std::size_t length) -> host_ptr<T, CopyPolicy>
 		{
 			auto p = static_cast<T*>(nullptr);
-			check(cudaMallocHost(&p, size * sizeof(T)));
+			auto size = length * sizeof(T);
+			check(cudaMallocHost(&p, size));
 			return host_ptr<T, CopyPolicy>(detail::unique_host_ptr<T>(p), size);
 		}
 
 		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_device_ptr(std::size_t width, std::size_t height) -> pitched_device_ptr<T, CopyPolicy, false>
+		auto make_device_ptr(std::size_t width, std::size_t height) -> pitched_device_ptr<T, CopyPolicy, std::false_type>
 		{
 			auto p = static_cast<T*>(nullptr);
 			auto pitch = std::size_t{};
 			check(cudaMallocPitch(&p, &pitch, width * sizeof(T), height));
-			return pitched_device_ptr<T, CopyPolicy, false>(detail::unique_device_ptr<T>(p), pitch, width, height);
+			return pitched_device_ptr<T, CopyPolicy, std::false_type>(detail::unique_device_ptr<T>(p), pitch, width, height);
 		}
 
 		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_host_ptr(std::size_t width, std::size_t height) -> pitched_host_ptr<T, CopyPolicy, false>
+		auto make_host_ptr(std::size_t width, std::size_t height) -> pitched_host_ptr<T, CopyPolicy, std::false_type>
 		{
 			auto p = static_cast<T*>(nullptr);
 			auto pitch = width * sizeof(T);
 			check(cudaMallocHost(&p, pitch * height));
-			return pitched_host_ptr<T, CopyPolicy, false>(detail::unique_host_ptr<T>(p), pitch, width, height);
+			return pitched_host_ptr<T, CopyPolicy, std::false_type>(detail::unique_host_ptr<T>(p), pitch, width, height);
 		}
 
 		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_device_ptr(std::size_t width, std::size_t height, std::size_t depth) -> pitched_device_ptr<T, CopyPolicy, true>
+		auto make_device_ptr(std::size_t width, std::size_t height, std::size_t depth) -> pitched_device_ptr<T, CopyPolicy, std::true_type>
 		{
 			auto extent = make_cudaExtent(width * sizeof(T), height, depth);
 			auto pitchedPtr = cudaPitchedPtr{};
 			check(cudaMalloc3D(&pitchedPtr, extent));
 			// omitting pitchedPtr.xsize and pitchedPtr.ysize as those are identical to width and height
-			return pitched_device_ptr<T, CopyPolicy, true>(detail::unique_device_ptr<T>(pitchedPtr.ptr), pitchedPtr.pitch, width, height, depth);
+			return pitched_device_ptr<T, CopyPolicy, std::true_type>(detail::unique_device_ptr<T>(pitchedPtr.ptr), pitchedPtr.pitch, width, height, depth);
 		}
 
 		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_host_ptr(std::size_t width, std::size_t height, std::size_t depth) -> pitched_host_ptr<T, CopyPolicy, true>
+		auto make_host_ptr(std::size_t width, std::size_t height, std::size_t depth) -> pitched_host_ptr<T, CopyPolicy, std::true_type>
 		{
 			auto p = static_cast<T*>(nullptr);
 			auto pitch = width * sizeof(T);
 			check(cudaMallocHost(&p, pitch * height * depth));
-			return pitched_host_ptr<T, CopyPolicy, true>(detail::unique_host_ptr<T>(p), pitch, width, height, depth);
+			return pitched_host_ptr<T, CopyPolicy, std::true_type>(detail::unique_host_ptr<T>(p), pitch, width, height, depth);
 		}
 
 		namespace detail

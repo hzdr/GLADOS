@@ -48,7 +48,7 @@ namespace ddrf
 					// read file header
 					auto header = HISHeader{};
 
-					auto& file = std::ifstream{path.c_str(), std::ios_base::binary};
+					auto&& file = std::ifstream{path.c_str(), std::ios_base::binary};
 					if(!file.is_open())
 					{
 						BOOST_LOG_TRIVIAL(warning) << "HIS loader: Could not open file " + path;
@@ -94,8 +94,8 @@ namespace ddrf
 						// ...
 
 					// calculate dimensions
-					auto width = header.brx - header.ulx + 1;
-					auto height = header.bry - header.uly + 1;
+					auto width = header.brx - header.ulx + 1u;
+					auto height = header.bry - header.uly + 1u;
 					auto number_of_projections  = header.number_of_frames;
 					if(number_of_projections > 1)
 					{
@@ -104,7 +104,6 @@ namespace ddrf
 					}
 
 					// read image data
-					auto pitch = std::size_t{};
 					auto img_buffer = MemoryManager::make_ptr(width, height);
 
 					switch(header.type_of_numbers)
@@ -172,7 +171,7 @@ namespace ddrf
 				template <typename U>
 				inline auto readEntry(std::ifstream& file, U* entry, std::size_t size) -> void
 				{
-					file.read(reinterpret_cast<char *>(entry), size);
+					file.read(reinterpret_cast<char *>(entry), static_cast<std::streamsize>(size));
 				}
 
 				template <typename Wanted, typename Actual>
