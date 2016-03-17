@@ -45,7 +45,7 @@ namespace ddrf
 						if(img.valid())
 						{
 							auto path = path_ + prefix_ + std::to_string(counter);
-							// BOOST_LOG_TRIVIAL(debug) << "SinkStage: Saving to " << path;
+							BOOST_LOG_TRIVIAL(debug) << "SinkStage: Saving to " << path;
 							ImageSaver::saveImage(std::move(img), path);
 							++counter;
 						}
