@@ -275,7 +275,8 @@ namespace ddrf
 			auto pitchedPtr = cudaPitchedPtr{};
 			check(cudaMalloc3D(&pitchedPtr, extent));
 			// omitting pitchedPtr.xsize and pitchedPtr.ysize as those are identical to width and height
-			return pitched_device_ptr<T, CopyPolicy, std::true_type>(detail::unique_device_ptr<T>(pitchedPtr.ptr), pitchedPtr.pitch, width, height, depth);
+			return pitched_device_ptr<T, CopyPolicy, std::true_type>(detail::unique_device_ptr<T>(static_cast<T*>(pitchedPtr.ptr)),
+					pitchedPtr.pitch, width, height, depth);
 		}
 
 		template <class T, class CopyPolicy = sync_copy_policy>

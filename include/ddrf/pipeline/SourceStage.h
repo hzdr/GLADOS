@@ -36,9 +36,8 @@ namespace ddrf
 
 				auto run() -> void
 				{
-					// auto paths = readDirectory(path_);
 					auto lock = std::unique_lock<decltype(m_)>{m_};
-					auto paths = std::vector<std::string>{"/media/HDD1/Feldkamp/Schaum/out-0033.his"};
+					auto paths = readDirectory(path_);
 					for(auto& path : paths)
 					{
 						auto img = ImageLoader::template loadImage<float>(path);
