@@ -156,17 +156,11 @@ namespace ddrf
 				return *this;
 			}
 
-			template <class OtherPtr>
-			inline auto operator=(const ptr<T, CopyPolicy, OtherPtr>& rhs) -> ptr&
-			{
-				base::copy(*this, rhs, size_);
-				return *this;
-			}
-
 			inline auto size() const noexcept -> std::size_t { return size_; }
 
 		private:
 			ptr(const ptr&) = delete;
+			auto operator=(const ptr&) -> ptr& = delete;
 
 		private:
 			std::size_t size_;
@@ -226,23 +220,9 @@ namespace ddrf
 			inline auto height() const noexcept -> std::size_t { return height_; }
 			inline auto depth() const noexcept -> std::size_t { return depth_; }
 
-			// FIXME: enable_if around is3D
-			template <class OtherPtr>
-			inline auto operator=(const pitched_ptr<T, CopyPolicy, std::true_type, OtherPtr>& rhs) -> pitched_ptr&
-			{
-				base::copy(*this, rhs, width_, height_, depth_);
-				return *this;
-			}
-
-			template <class OtherPtr>
-			inline auto operator=(const pitched_ptr<T, CopyPolicy, std::false_type, OtherPtr>& rhs) -> pitched_ptr&
-			{
-				base::copy(*this, rhs, width_, height_);
-				return *this;
-			}
-
 		private:
 			pitched_ptr(const pitched_ptr&) = delete;
+			auto operator=(const pitched_ptr&) -> pitched_ptr& = delete;
 
 		private:
 			std::size_t pitch_;
