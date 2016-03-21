@@ -17,7 +17,7 @@ namespace ddrf
 	{
 		namespace detail
 		{
-			// no check() here as deleters are required to never throw exceptions
+			// no CHECK() here as deleters are required to never throw exceptions
 			struct device_deleter {	auto operator()(void* p) -> void { cudaFree(p); }};
 			struct host_deleter	{ auto operator()(void* p) -> void { cudaFreeHost(p); }};
 
@@ -137,7 +137,7 @@ namespace ddrf
 				template <class Dest, class Src>
 				inline auto copy(Dest& dest, const Src& src, std::size_t size) const -> void
 				{
-					check(cudaMemcpy(dest.get(), src.get(), size,
+					CHECK(cudaMemcpy(dest.get(), src.get(), size,
 							detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value));
 				}
 
@@ -145,7 +145,7 @@ namespace ddrf
 				template <class Dest, class Src>
 				inline auto copy(Dest& dest, const Src& src, std::size_t width, std::size_t height) const -> void
 				{
-					check(cudaMemcpy2D(dest.get(), dest.pitch(),
+					CHECK(cudaMemcpy2D(dest.get(), dest.pitch(),
 										src.get(), src.pitch(),
 										width * sizeof(typename Src::element_type), height,
 										detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value));
@@ -163,7 +163,7 @@ namespace ddrf
 					parms.extent = make_cudaExtent(uchar_width, height, depth);
 					parms.kind = detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value;
 
-					check(cudaMemcpy3D(&parms));
+					CHECK(cudaMemcpy3D(&parms));
 				}
 		};
 
@@ -191,7 +191,7 @@ namespace ddrf
 				template <class Dest, class Src>
 				inline auto copy(Dest& dest, const Src& src, std::size_t size) const -> void
 				{
-					check(cudaMemcpyAsync(dest.get(), src.get(), size,
+					CHECK(cudaMemcpyAsync(dest.get(), src.get(), size,
 							detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value, stream_));
 				}
 
@@ -199,7 +199,7 @@ namespace ddrf
 				template <class Dest, class Src>
 				inline auto copy(Dest& dest, const Src& src, std::size_t width, std::size_t height) const -> void
 				{
-					check(cudaMemcpy2DAsync(dest.get(), dest.pitch(),
+					CHECK(cudaMemcpy2DAsync(dest.get(), dest.pitch(),
 											src.get(), src.pitch(),
 											width * sizeof(typename Src::element_type), height,
 											detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value, stream_));
@@ -216,7 +216,7 @@ namespace ddrf
 					parms.extent = make_cudaExtent(uchar_width, height, depth);
 					parms.kind = detail::Direction<Src::underlying_type::target, Dest::underlying_type::target>::value;
 
-					check(cudaMemcpy3DAsync(&parms, stream_));
+					CHECK(cudaMemcpy3DAsync(&parms, stream_));
 				}
 
 			private:
@@ -237,7 +237,7 @@ namespace ddrf
 		{
 			auto p = static_cast<T*>(nullptr);
 			auto size = length * sizeof(T);
-			check(cudaMalloc(&p, size));
+			CHECK(cudaMalloc(&p, size));
 			return device_ptr<T, CopyPolicy>(detail::unique_device_ptr<T>(p), size);
 		}
 
@@ -246,7 +246,7 @@ namespace ddrf
 		{
 			auto p = static_cast<T*>(nullptr);
 			auto size = length * sizeof(T);
-			check(cudaMallocHost(&p, size));
+			CHECK(cudaMallocHost(&p, size));
 			return host_ptr<T, CopyPolicy>(detail::unique_host_ptr<T>(p), size);
 		}
 
@@ -255,7 +255,7 @@ namespace ddrf
 		{
 			auto p = static_cast<T*>(nullptr);
 			auto pitch = std::size_t{};
-			check(cudaMallocPitch(&p, &pitch, width * sizeof(T), height));
+			CHECK(cudaMallocPitch(&p, &pitch, width * sizeof(T), height));
 			return pitched_device_ptr<T, CopyPolicy, std::false_type>(detail::unique_device_ptr<T>(p), pitch, width, height);
 		}
 
@@ -264,7 +264,7 @@ namespace ddrf
 		{
 			auto p = static_cast<T*>(nullptr);
 			auto pitch = width * sizeof(T);
-			check(cudaMallocHost(&p, pitch * height));
+			CHECK(cudaMallocHost(&p, pitch * height));
 			return pitched_host_ptr<T, CopyPolicy, std::false_type>(detail::unique_host_ptr<T>(p), pitch, width, height);
 		}
 
@@ -273,7 +273,7 @@ namespace ddrf
 		{
 			auto extent = make_cudaExtent(width * sizeof(T), height, depth);
 			auto pitchedPtr = cudaPitchedPtr{};
-			check(cudaMalloc3D(&pitchedPtr, extent));
+			CHECK(cudaMalloc3D(&pitchedPtr, extent));
 			// omitting pitchedPtr.xsize and pitchedPtr.ysize as those are identical to width and height
 			return pitched_device_ptr<T, CopyPolicy, std::true_type>(detail::unique_device_ptr<T>(static_cast<T*>(pitchedPtr.ptr)),
 					pitchedPtr.pitch, width, height, depth);
@@ -284,7 +284,7 @@ namespace ddrf
 		{
 			auto p = static_cast<T*>(nullptr);
 			auto pitch = width * sizeof(T);
-			check(cudaMallocHost(&p, pitch * height * depth));
+			CHECK(cudaMallocHost(&p, pitch * height * depth));
 			return pitched_host_ptr<T, CopyPolicy, std::true_type>(detail::unique_host_ptr<T>(p), pitch, width, height, depth);
 		}
 

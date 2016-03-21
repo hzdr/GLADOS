@@ -9,6 +9,9 @@
 
 #include <cufft.h>
 
+#define CHECK(x) ddrf::cuda::check(x, __FILE__, __LINE__)
+#define CHECK_CUFFT(x) ddrf::cuda::checkCufft(x, __FILE__, __LINE__)
+
 namespace ddrf
 {
 	namespace cuda
@@ -59,14 +62,14 @@ namespace ddrf
 			}
 		}
 
-		inline auto check(cudaError_t err) -> void
+		inline auto check(cudaError_t err, const char* file, int line) -> void
 		{
-			detail::checkCudaError(err, __FILE__, __LINE__);
+			detail::checkCudaError(err, file, line);
 		}
 
-		inline auto checkCufft(cufftResult res) -> void
+		inline auto checkCufft(cufftResult res, const char* file, int line) -> void
 		{
-			detail::checkCufftError(res, __FILE__, __LINE__);
+			detail::checkCufftError(res, file, line);
 		}
 	}
 }

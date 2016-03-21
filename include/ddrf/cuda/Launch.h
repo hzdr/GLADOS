@@ -34,13 +34,13 @@ namespace ddrf
 			// calculate max potential blocks
 			auto block_size = int{};
 			auto min_grid_size = int{};
-			cudaOccupancyMaxPotentialBlockSize(&min_grid_size, &block_size, kernel, 0, 0);
+			CHECK(cudaOccupancyMaxPotentialBlockSize(&min_grid_size, &block_size, kernel, 0, 0));
 
 			// calculate de facto occupation based on input size
 			auto grid_size = (input_size + block_size - 1) / block_size;
 
 			kernel<<<grid_size, block_size>>>(std::forward<Args>(args)...);
-			check(cudaPeekAtLastError());
+			CHECK(cudaPeekAtLastError());
 		}
 
 		template <typename... Args>
@@ -55,7 +55,7 @@ namespace ddrf
 									static_cast<unsigned int>((input_height + block_size.y - 1)/block_size.y)};
 
 			kernel<<<grid_size, block_size>>>(args...);
-			check(cudaPeekAtLastError());
+			CHECK(cudaPeekAtLastError());
 		}
 
 		template <typename... Args>
@@ -64,16 +64,16 @@ namespace ddrf
 			auto threads = detail::roundUp(static_cast<unsigned int>(input_width * input_height * input_depth), 1024);
 			auto blocks = threads / 1024;
 
-			auto block_size = dim3{detail::roundUp(static_cast<unsigned int>(input_width) / blocks, 32),
-									detail::roundUp(static_cast<unsigned int>(input_height) / blocks, 32),
-									detail::roundUp(static_cast<unsigned int>(input_depth) / blocks, 32)};
+			auto block_size = dim3{detail::roundUp(static_cast<unsigned int>(input_width) / blocks, 16),
+									detail::roundUp(static_cast<unsigned int>(input_height) / blocks, 16),
+									detail::roundUp(static_cast<unsigned int>(input_depth) / blocks, 4)};
 
 			auto grid_size = dim3{static_cast<unsigned int>((input_width + block_size.x - 1) / block_size.x),
 									static_cast<unsigned int>((input_height + block_size.y - 1) / block_size.y),
 									static_cast<unsigned int>((input_depth + block_size.z - 1) / block_size.z)};
 
 			kernel<<<grid_size, block_size>>>(args...);
-			check(cudaPeekAtLastError());
+			CHECK(cudaPeekAtLastError());
 		}
 	}
 }
