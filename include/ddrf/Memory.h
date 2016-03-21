@@ -243,7 +243,6 @@ namespace ddrf
 
 		private:
 			pitched_ptr(const pitched_ptr&) = delete;
-			auto operator=(const pitched_ptr&) -> pitched_ptr& = delete;
 
 		private:
 			std::size_t pitch_;

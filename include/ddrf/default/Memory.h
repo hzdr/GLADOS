@@ -25,16 +25,16 @@ namespace ddrf
 
 				/* 2D copies */
 				template <class Dest, class Src>
-				inline auto copy(Dest& dest, const Src& src, std::size_t width, std::size_t height)
+				inline auto copy(Dest& dest, const Src& src, std::size_t width, std::size_t height) -> void
 				{
 					std::copy(src.get(), src.get() + width * height, dest.get());
 				}
 
 				/* 3D copies */
 				template <class Dest, class Src>
-				inline auto copy(Dest& dest, const Src& src, std::size_t width, std::size_t height)
+				inline auto copy(Dest& dest, const Src& src, std::size_t width, std::size_t height, std::size_t depth) -> void
 				{
-					std::copy(src.get(), src.get() + width * height, dest.get());
+					std::copy(src.get(), src.get() + width * height * depth, dest.get());
 				}
 		};
 

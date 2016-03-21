@@ -12,17 +12,15 @@ namespace ddrf
 	class ImageLoader : public Implementation
 	{
 		public:
-			using image_type = typename Implementation::image_type;
+			using manager_type = typename Implementation::manager_type;
 
 		public:
 			/*
-			 * Loads an image from the given path. The image data will be converted to the given
-			 * data type if needed.
-			 */
-			template <typename T>
-			auto loadImage(const std::string& path) -> Image<image_type>
+			 * Loads an image from the given path.
+			 * */
+			auto loadImage(const std::string& path) -> Image<manager_type>
 			{
-				return Implementation::template loadImage<T>(path);
+				return Implementation::loadImage(path);
 			}
 	};
 }

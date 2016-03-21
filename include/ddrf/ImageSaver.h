@@ -1,30 +1,35 @@
 #ifndef DDRF_IMAGESAVER_H_
 #define DDRF_IMAGESAVER_H_
 
+#include <string>
+#include <utility>
+
+#include "Image.h"
+#include "Volume.h"
+
 namespace ddrf
 {
 	template <class Implementation>
 	class ImageSaver : public Implementation
 	{
 		public:
-			using image_type = typename Implementation::image_type;
+			using manager_type = typename Implementation::manager_type;
 
 		public:
 			/*
 			 * Saves an image to the given path.
 			 */
-			auto saveImage(Image<image_type>&& image, std::string path) -> void
+			auto saveImage(Image<manager_type> image, std::string path) -> void
 			{
-				Implementation::saveImage(std::forward<Image<image_type>&&>(image), path);
+				Implementation::saveImage(std::move(image), path);
 			}
 
 			/*
-			 * Saves an image into a volume at the given path.
+			 * Saves a volume to the given path.
 			 */
-			auto saveToVolume(Image<image_type>&& image, std::string path, std::size_t index) -> void
+			auto saveVolume(Volume<manager_type> volume, std::string path) -> void
 			{
-				Implementation::saveToVolume(std::forward<Image<image_type>&&>(image),
-												path, index);
+				Implementation::saveVolume(std::move(volume), path);
 			}
 
 		protected:

@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <memory>
+#include <type_traits>
+#include <utility>
 
 #include "Memory.h"
 
@@ -11,23 +13,36 @@ namespace ddrf
 {
 	namespace def
 	{
-		template <class T, class CopyPolicy = copy_policy>
+		template <class T>
 		class MemoryManager
 		{
 			public:
 				using value_type = T;
 				using size_type = std::size_t;
-				using pointer_type = pitched_ptr<T>;
+				using pointer_type_2D = pitched_ptr<T, std::false_type>;
+				using pointer_type_3D = pitched_ptr<T, std::true_type>;
 
 			public:
-				inline auto make_ptr(size_type width, size_type height) -> pointer_type
+				inline auto make_ptr(size_type width, size_type height) -> pointer_type_2D
 				{
-					return std::unique_ptr<T>(new value_type[width * height]);
+					auto ptr = std::unique_ptr<T[]>(new value_type[width * height]);
+					return pitched_ptr<T, std::false_type>(std::move(ptr), width * sizeof(T), width, height);
 				}
 
-				inline auto copy(pointer_type& dest, const pointer_type& src, size_type width, size_type height) -> void
+				inline auto make_ptr(size_type width, size_type height, size_type depth) -> pointer_type_3D
+				{
+					auto ptr = std::unique_ptr<T>(new value_type[width * height * depth]);
+					return pitched_ptr<T, std::true_type>(std::move(ptr), width * sizeof(T), width, height, depth);
+				}
+
+				inline auto copy(pointer_type_2D& dest, const pointer_type_2D& src, size_type width, size_type height) -> void
 				{
 					std::copy(src.get(), src.get() + width * height, dest.get());
+				}
+
+				inline auto copy(pointer_type_3D& dest, const pointer_type_3D& src, size_type width, size_type height, size_type depth) -> void
+				{
+					std::copy(src.get(), src.get() + width * height * depth, dest.get());
 				}
 		};
 	}

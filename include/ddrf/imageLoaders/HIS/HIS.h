@@ -13,7 +13,6 @@
 #include <boost/log/trivial.hpp>
 
 #include "../../Image.h"
-#include "../../default/Image.h"
 
 #include "HISHeader.h"
 
@@ -21,11 +20,12 @@ namespace ddrf
 {
 	namespace loaders
 	{
-		template <typename T, class MemoryManager>
+		template <class MemoryManager>
 		class HIS : public MemoryManager
 		{
 			public:
-				using image_type = def::Image<T, MemoryManager>;
+				using value_type = typename MemoryManager::value_type;
+				using manager_type = MemoryManager;
 
 			private:
 				enum class Datatype : std::int32_t
@@ -40,11 +40,9 @@ namespace ddrf
 
 			public:
 				// TODO: Implement support for more than one frame per file
-				template <typename U>
-				auto loadImage(const std::string& path)
-					-> typename std::enable_if<std::is_same<T, U>::value, Image<image_type>>::type
+				auto loadImage(const std::string& path) -> Image<MemoryManager>
 				{
-					using empty_return = Image<image_type>;
+					using empty_return = Image<MemoryManager>;
 					// read file header
 					auto header = HISHeader{};
 
@@ -112,7 +110,7 @@ namespace ddrf
 						{
 							auto buffer = std::unique_ptr<std::uint8_t>{new std::uint8_t[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(std::uint8_t));
-							readBuffer<U, std::uint8_t>(img_buffer.get(), buffer.get(), width, height);
+							readBuffer<value_type, std::uint8_t>(img_buffer.get(), buffer.get(), width, height);
 							break;
 						}
 
@@ -120,7 +118,7 @@ namespace ddrf
 						{
 							auto buffer = std::unique_ptr<std::uint16_t>{new std::uint16_t[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(std::uint16_t));
-							readBuffer<U, std::uint16_t>(img_buffer.get(), buffer.get(), width, height);
+							readBuffer<value_type, std::uint16_t>(img_buffer.get(), buffer.get(), width, height);
 							break;
 						}
 
@@ -128,7 +126,7 @@ namespace ddrf
 						{
 							auto buffer = std::unique_ptr<std::uint32_t>{new std::uint32_t[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(std::uint32_t));
-							readBuffer<U, std::uint32_t>(img_buffer.get(), buffer.get(), width, height);
+							readBuffer<value_type, std::uint32_t>(img_buffer.get(), buffer.get(), width, height);
 							break;
 						}
 
@@ -136,7 +134,7 @@ namespace ddrf
 						{
 							auto buffer = std::unique_ptr<double>{new double[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(double));
-							readBuffer<U, double>(img_buffer.get(), buffer.get(), width, height);
+							readBuffer<value_type, double>(img_buffer.get(), buffer.get(), width, height);
 							break;
 						}
 
@@ -144,7 +142,7 @@ namespace ddrf
 						{
 							auto buffer = std::unique_ptr<float>{new float[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(float));
-							readBuffer<U, float>(img_buffer.get(), buffer.get(), width, height);
+							readBuffer<value_type, float>(img_buffer.get(), buffer.get(), width, height);
 							break;
 						}
 
@@ -155,7 +153,7 @@ namespace ddrf
 						}
 					}
 
-					return ddrf::Image<image_type>(width, height, std::move(img_buffer));
+					return ddrf::Image<MemoryManager>(width, height, std::move(img_buffer));
 				}
 
 			protected:

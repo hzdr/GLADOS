@@ -23,10 +23,10 @@ namespace ddrf
 	{
 		template <class ImageLoader>
 		class SourceStage : public ImageLoader
-						  , public OutputSide<Image<typename ImageLoader::image_type>>
+						  , public OutputSide<Image<typename ImageLoader::manager_type>>
 		{
 			public:
-				using output_type = Image<typename ImageLoader::image_type>;
+				using output_type = Image<typename ImageLoader::manager_type>;
 
 			public:
 				SourceStage(const std::string& path)
@@ -37,10 +37,11 @@ namespace ddrf
 				auto run() -> void
 				{
 					auto lock = std::unique_lock<decltype(m_)>{m_};
-					auto paths = readDirectory(path_);
+					// auto paths = readDirectory(path_);
+					auto paths = std::vector<std::string>{"/media/HDD1/Feldkamp/Schaum/out-0033.his"};
 					for(auto& path : paths)
 					{
-						auto img = ImageLoader::template loadImage<float>(path);
+						auto img = ImageLoader::loadImage(path);
 						if(img.valid())
 						{
 							this->output(std::move(img));

@@ -19,10 +19,10 @@ namespace ddrf
 	{
 		template <class ImageSaver>
 		class SinkStage : public ImageSaver
-						, public InputSide<ddrf::Image<typename ImageSaver::image_type>>
+						, public InputSide<ddrf::Volume<typename ImageSaver::manager_type>>
 		{
 			public:
-				using input_type = ddrf::Image<typename ImageSaver::image_type>;
+				using input_type = ddrf::Volume<typename ImageSaver::manager_type>;
 
 			public:
 				SinkStage(const std::string& path, const std::string& prefix)
@@ -41,12 +41,12 @@ namespace ddrf
 					auto counter = 0;
 					while(true)
 					{
-						auto img = this->input_queue_.take();
-						if(img.valid())
+						auto vol = this->input_queue_.take();
+						if(vol.valid())
 						{
 							auto path = path_ + prefix_ + std::to_string(counter);
 							BOOST_LOG_TRIVIAL(debug) << "SinkStage: Saving to " << path;
-							ImageSaver::saveImage(std::move(img), path);
+							ImageSaver::saveVolume(std::move(vol), path);
 							++counter;
 						}
 						else
