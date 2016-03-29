@@ -31,14 +31,14 @@ namespace ddrf
 
 		public:
 			Image() noexcept
-			: width_{0}, height_{0}, data_{nullptr}, valid_{false}
+			: width_{0}, height_{0}, index_{0}, data_{nullptr}, valid_{false}
 			{
 			}
 
-			Image(size_type img_width, size_type img_height,
+			Image(size_type img_width, size_type img_height, size_type idx = 0,
 					pointer_type img_data = nullptr)
 			: MemoryManager()
-			, width_{img_width}, height_{img_height}, data_{std::move(img_data)}, valid_{true}
+			, width_{img_width}, height_{img_height}, index_{idx}, data_{std::move(img_data)}, valid_{true}
 			{
 				if(data_ == nullptr)
 						data_ = MemoryManager::make_ptr(width_, height_);
@@ -46,7 +46,7 @@ namespace ddrf
 
 			Image(const Image& other)
 			: MemoryManager(other)
-			, width_{other.width_}, height_{other.height_}, valid_{other.valid_}
+			, width_{other.width_}, height_{other.height_}, index_{other.index_}, valid_{other.valid_}
 			{
 				if(other.data_ == nullptr)
 					data_ = nullptr;
@@ -62,6 +62,7 @@ namespace ddrf
 			{
 				width_ = rhs.width();
 				height_ = rhs.height();
+				index_ = rhs.index();
 				valid_ = rhs.valid();
 
 				if(rhs.container() == nullptr)
@@ -78,7 +79,7 @@ namespace ddrf
 
 			Image(Image&& other) noexcept
 			: MemoryManager(std::move(other))
-			, width_{other.width_}, height_{other.height_}, data_{std::move(other.data_)}
+			, width_{other.width_}, height_{other.height_}, index_{other.index_}, data_{std::move(other.data_)}
 			, valid_{other.valid_}
 			{
 				other.valid_ = false; // invalid after we moved its data
@@ -88,6 +89,7 @@ namespace ddrf
 			{
 				width_ = rhs.width_;
 				height_ = rhs.height_;
+				index_ = rhs.index_;
 				data_ = std::move(rhs.data_);
 				valid_ = rhs.valid_;
 
@@ -126,6 +128,11 @@ namespace ddrf
 				return valid_;
 			}
 
+			auto index() const noexcept -> size_type
+			{
+				return index_;
+			}
+
 			/*
 			 * return the underlying pointer
 			 */
@@ -137,6 +144,7 @@ namespace ddrf
 		private:
 			size_type width_;
 			size_type height_;
+			size_type index_;
 			pointer_type data_;
 			bool valid_;
 	};

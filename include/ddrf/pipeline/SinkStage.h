@@ -5,7 +5,6 @@
 #include <string>
 #include <utility>
 
-#define BOOST_ALL_DYN_LINK
 #include <boost/log/trivial.hpp>
 
 #include "../Filesystem.h"

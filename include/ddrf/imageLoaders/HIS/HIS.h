@@ -1,6 +1,7 @@
 #ifndef DDRF_HIS_H_
 #define DDRF_HIS_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <fstream>
 #include <memory>
@@ -9,7 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-#define BOOST_ALL_DYN_LINK
 #include <boost/log/trivial.hpp>
 
 #include "../../Image.h"
@@ -40,7 +40,7 @@ namespace ddrf
 
 			public:
 				// TODO: Implement support for more than one frame per file
-				auto loadImage(const std::string& path) -> Image<MemoryManager>
+				auto loadImage(const std::string& path, std::size_t index) -> Image<MemoryManager>
 				{
 					using empty_return = Image<MemoryManager>;
 					// read file header
@@ -153,7 +153,7 @@ namespace ddrf
 						}
 					}
 
-					return ddrf::Image<MemoryManager>(width, height, std::move(img_buffer));
+					return ddrf::Image<MemoryManager>(width, height, index, std::move(img_buffer));
 				}
 
 			protected:

@@ -22,8 +22,9 @@ namespace ddrf
 			template<class T> struct SampleFormat<T, true, true> { static constexpr auto value = SAMPLEFORMAT_UINT; };
 			template<class T> struct SampleFormat<T, true, false> { static constexpr auto value = SAMPLEFORMAT_INT; };
 			template<> struct SampleFormat<float> { static constexpr auto value = SAMPLEFORMAT_IEEEFP; };
+			template<> struct SampleFormat<double>{ static constexpr auto value = SAMPLEFORMAT_IEEEFP; };
 
-			template<class T> struct BitsPerSample { static constexpr auto value = sizeof(T) >> 3; };
+			template<class T> struct BitsPerSample { static constexpr auto value = sizeof(T) << 3; };
 
 			struct TIFFDeleter { auto operator()(TIFF* p) -> void { TIFFClose(p); }};
 		}

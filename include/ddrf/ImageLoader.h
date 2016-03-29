@@ -1,6 +1,7 @@
 #ifndef DDRF_IMAGELOADER_H_
 #define DDRF_IMAGELOADER_H_
 
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -18,9 +19,9 @@ namespace ddrf
 			/*
 			 * Loads an image from the given path.
 			 * */
-			auto loadImage(const std::string& path) -> Image<manager_type>
+			auto loadImage(const std::string& path, std::size_t index) -> Image<manager_type>
 			{
-				return Implementation::loadImage(path);
+				return Implementation::loadImage(path, index);
 			}
 	};
 }

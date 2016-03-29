@@ -1,6 +1,7 @@
 #ifndef DDRF_VOLUME_H_
 #define DDRF_VOLUME_H_
 
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 
@@ -124,10 +125,13 @@ namespace ddrf
 					throw std::out_of_range{"Volume: invalid slice index"};
 
 				auto sliceIdx = i * width_ * height_;
-				auto slicePtr = pointer_type_2D(underlying(data_.get() + sliceIdx), width_ * sizeof(value_type), width_, height_);
+				auto slicePtr = data_.get() + sliceIdx;
 				auto ptr = MemoryManager::make_ptr(width_, height_);
-				MemoryManager::copy(ptr, slicePtr, width_, height_);
-				return Image<MemoryManager>{width_, height_, std::move(ptr)};
+
+				std::copy(slicePtr, slicePtr + width_ * height_, ptr.get());
+
+				// MemoryManager::copy(ptr, slicePtr, width_, height_);
+				return Image<MemoryManager>{width_, height_, i, std::move(ptr)};
 			}
 
 		private:

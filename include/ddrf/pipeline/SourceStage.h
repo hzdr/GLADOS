@@ -9,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#define BOOST_ALL_DYN_LINK
 #include <boost/log/trivial.hpp>
 
 #include "../Filesystem.h"
@@ -37,17 +36,18 @@ namespace ddrf
 				auto run() -> void
 				{
 					auto lock = std::unique_lock<decltype(m_)>{m_};
-					// auto paths = readDirectory(path_);
-					auto paths = std::vector<std::string>{"/media/HDD1/Feldkamp/Schaum/out-0033.his"};
+					auto paths = readDirectory(path_);
+
+					auto index = 0u;
 					for(auto& path : paths)
 					{
-						auto img = ImageLoader::loadImage(path);
+						auto img = ImageLoader::loadImage(path, index);
 						if(img.valid())
 						{
 							this->output(std::move(img));
+							++index;
 							++num_;
 						}
-
 						else
 							BOOST_LOG_TRIVIAL(warning) << "SourceStage: Skipping invalid file " << path;
 					}
