@@ -41,7 +41,8 @@ namespace ddrf
 						using value_type = typename Image<MemoryManager>::value_type;
 
 						path.append(".tif");
-						auto tif = std::unique_ptr<::TIFF, detail::TIFFDeleter>{TIFFOpen(path.c_str(), "w")};
+						// w8 enables Bigtiff
+						auto tif = std::unique_ptr<::TIFF, detail::TIFFDeleter>{TIFFOpen(path.c_str(), "w8")};
 						if(tif == nullptr)
 							throw std::runtime_error{"savers::TIFF: Could not open file " + path + " for writing."};
 
@@ -66,7 +67,7 @@ namespace ddrf
 						using value_type = typename Volume<MemoryManager>::value_type;
 						path.append(".tif");
 
-						auto tif = std::unique_ptr<::TIFF, detail::TIFFDeleter>{TIFFOpen(path.c_str(), "w")};
+						auto tif = std::unique_ptr<::TIFF, detail::TIFFDeleter>{TIFFOpen(path.c_str(), "w8")};
 						if(tif == nullptr)
 							throw std::runtime_error{"savers::TIFF: Could not open file " + path + " for writing."};
 
