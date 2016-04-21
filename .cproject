@@ -34,7 +34,7 @@
 								<option defaultValue="nvcc.compiler.optimization.level.none" id="nvcc.compiler.optimization.level.759861989" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1604590704" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic" value="true" valueType="boolean"/>
 								<option id="nvcc.compiler.cpp11option.1030116442" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
-								<option id="nvcc.compiler.include.paths.677679506" superClass="nvcc.compiler.include.paths" valueType="includePath">
+								<option id="nvcc.compiler.include.paths.677679506" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include}&quot;"/>
 								</option>
 								<inputType id="nvcc.compiler.input.cu.679349568" superClass="nvcc.compiler.input.cu"/>
@@ -47,6 +47,7 @@
 									<listOptionValue builtIn="false" value="boost_system"/>
 									<listOptionValue builtIn="false" value="boost_filesystem"/>
 									<listOptionValue builtIn="false" value="boost_log"/>
+									<listOptionValue builtIn="false" value="boost_date_time"/>
 								</option>
 								<option id="nvcc.linker.option.cudart.1064430505" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
 								<inputType id="nvcc.linker.input.170576721" superClass="nvcc.linker.input">
@@ -119,7 +120,7 @@
 								<option defaultValue="nvcc.compiler.optimization.level.most" id="nvcc.compiler.optimization.level.637762835" name="Optimization Level" superClass="nvcc.compiler.optimization.level" valueType="enumerated"/>
 								<option id="nvcc.compiler.pic.1894679540" name="Position Independent Code (-fPIC)" superClass="nvcc.compiler.pic" value="true" valueType="boolean"/>
 								<option id="nvcc.compiler.cpp11option.1320846811" name="Enable C++11 support (-std=c++11)" superClass="nvcc.compiler.cpp11option" value="true" valueType="boolean"/>
-								<option id="nvcc.compiler.include.paths.405791860" superClass="nvcc.compiler.include.paths" valueType="includePath">
+								<option id="nvcc.compiler.include.paths.405791860" name="Include paths (-I)" superClass="nvcc.compiler.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include}&quot;"/>
 								</option>
 								<inputType id="nvcc.compiler.input.cu.1019209517" superClass="nvcc.compiler.input.cu"/>
@@ -132,6 +133,7 @@
 									<listOptionValue builtIn="false" value="boost_system"/>
 									<listOptionValue builtIn="false" value="boost_filesystem"/>
 									<listOptionValue builtIn="false" value="boost_log"/>
+									<listOptionValue builtIn="false" value="boost_date_time"/>
 								</option>
 								<option id="nvcc.linker.option.cudart.956510757" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
 								<inputType id="nvcc.linker.input.1151982940" superClass="nvcc.linker.input">
@@ -167,6 +169,7 @@
 					<ptx major="5" minor="2"/>
 					<ptx major="5" minor="3"/>
 				</executable>
+				<editor-arch major="2" minor="0"/>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
 		</cconfiguration>
