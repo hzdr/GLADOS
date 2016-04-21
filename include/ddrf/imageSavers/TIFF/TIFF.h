@@ -98,7 +98,7 @@ namespace ddrf
 						TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
 						TIFFSetField(tif, TIFFTAG_THRESHHOLDING, THRESHHOLD_BILEVEL);
 						TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 1);
-						TIFFSetField(tif, TIFFTAG_SOFTWARE, "ddafa");
+						TIFFSetField(tif, TIFFTAG_SOFTWARE, "ddrf");
 						TIFFSetField(tif, TIFFTAG_DATETIME, ss.str().c_str());
 
 						TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, detail::SampleFormat<value_type>::value);
