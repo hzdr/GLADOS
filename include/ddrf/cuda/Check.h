@@ -76,6 +76,7 @@ namespace ddrf
 					case CUSPARSE_STATUS_EXECUTION_FAILED: return "The GPU program failed to execute.";
 					case CUSPARSE_STATUS_INTERNAL_ERROR: return "An internal cuSPARSE operation failed.";
 					case CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED: return "The matrix type is not supported by this function.";
+					case CUSPARSE_STATUS_ZERO_PIVOT: return "An entry of the matrix is either structural zero or numerical zero (singular block)";
 					default: return "Unknown error";
 				}
 			}
