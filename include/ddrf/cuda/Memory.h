@@ -1,6 +1,7 @@
 #ifndef CUDA_MEMORY_H_
 #define CUDA_MEMORY_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <tuple>
@@ -338,6 +339,54 @@ namespace ddrf
 		{
 			auto ftor = detail::copy_ftor<async_copy_policy>{};
 			ftor(dest, src);
+		}
+
+		/*
+		 * memsets
+		 */
+		template <class Ptr>
+		auto memset(Ptr& ptr, int value)
+		-> typename std::enable_if<!Ptr::has_pitch && (Ptr::underlying_type::target == detail::Target::Device), void>::type
+		{
+			CHECK(cudaMemset(ptr.get(), value, ptr.size()));
+		}
+
+		template <class Ptr>
+		auto memset(Ptr& ptr, int value)
+		-> typename std::enable_if<!Ptr::has_pitch && (Ptr::underlying_type_target == detail::Target::Host), void>::type
+		{
+			std::fill(ptr.get(), ptr.get() + ptr.size(), value);
+		}
+
+		template <class Ptr>
+		auto memset(Ptr& ptr, int value)
+		-> typename std::enable_if<Ptr::has_pitch && !Ptr::is3DPtr && (Ptr::underlying_type::target == detail::Target::Device), void>::type
+		{
+			CHECK(cudaMemset2D(ptr.get(), ptr.pitch(), value, ptr.width(), ptr.height()));
+		}
+
+		template <class Ptr>
+		auto memset(Ptr& ptr, int value)
+		-> typename std::enable_if<Ptr::has_pitch && !Ptr::is3DPtr && (Ptr::underlying_type::target == detail::Target::Host), void>::type
+		{
+			std::fill(ptr.get(), ptr.get() + (ptr.width() * ptr.height()), value);
+		}
+
+		template <class Ptr>
+		auto memset(Ptr& ptr, int value)
+		-> typename std::enable_if<Ptr::has_pitch && Ptr::is3DPtr && (Ptr::underlying_type::target == detail::Target::Device), void>::type
+		{
+			auto pitched_ptr = make_cudaPitchedPtr(ptr.get(), ptr.pitch(), ptr.width(), ptr.height());
+			auto uchar_width = ptr.width() * sizeof(typename Ptr::element_type)/sizeof(unsigned char);
+			auto extent = make_cudaExtent(uchar_width, ptr.height(), ptr.depth());
+			CHECK(cudaMemset3D(pitched_ptr, value, extent));
+		}
+
+		template <class Ptr>
+		auto memset(Ptr& ptr, int value)
+		-> typename std::enable_if<Ptr::has_pitch && Ptr::is3DPtr && (Ptr::underlying_type::target == detail::Target::Host), void>::type
+		{
+			std::fill(ptr.get(), ptr.get() + (ptr.width() * ptr.height() * ptr.depth()), value);
 		}
 	}
 }

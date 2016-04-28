@@ -8,9 +8,11 @@
 #endif
 
 #include <cufft.h>
+#include <cusparse.h>
 
 #define CHECK(x) ddrf::cuda::check(x, __FILE__, __LINE__)
 #define CHECK_CUFFT(x) ddrf::cuda::checkCufft(x, __FILE__, __LINE__)
+#define CHECK_CUSPARSE(x) ddrf::cuda::checkCusparse(x, __FILE__, __LINE__)
 
 namespace ddrf
 {
@@ -22,8 +24,8 @@ namespace ddrf
 			{
 				if(err != cudaSuccess)
 				{
-					throw std::runtime_error("CUDA assertion failed at " + std::string(file) + ":" + std::to_string(line) +
-							": " + std::string(cudaGetErrorString(err)));
+					throw std::runtime_error{"CUDA call failed at " + std::string(file) + ":" + std::to_string(line) +
+							": " + std::string(cudaGetErrorString(err))};
 				}
 			}
 
@@ -55,10 +57,36 @@ namespace ddrf
 			{
 				if(result != CUFFT_SUCCESS)
 				{
-					throw std::runtime_error("cuFFT assertion failed at " + std::string(file) + ":" + std::to_string(line) +
-							": " + getCufftErrorString(result));
+					throw std::runtime_error{"cuFFT call failed at " + std::string(file) + ":" + std::to_string(line) +
+							": " + getCufftErrorString(result)};
 				}
 
+			}
+
+			inline auto getCusparseErrorString(cusparseStatus_t stat) -> std::string
+			{
+				switch(stat)
+				{
+					case CUSPARSE_STATUS_SUCCESS: return "The operation completed successfully.";
+					case CUSPARSE_STATUS_NOT_INITIALIZED: return "The cuSPARSE library was not initialized.";
+					case CUSPARSE_STATUS_ALLOC_FAILED: return "Resource allocation failed inside the cuSPARSE library.";
+					case CUSPARSE_STATUS_INVALID_VALUE: return "An unsupported value or parameter was passed to the function.";
+					case CUSPARSE_STATUS_ARCH_MISMATCH: return "The function requires a feature absent from the device architecture.";
+					case CUSPARSE_STATUS_MAPPING_ERROR: return "An access to GPU memory space failed.";
+					case CUSPARSE_STATUS_EXECUTION_FAILED: return "The GPU program failed to execute.";
+					case CUSPARSE_STATUS_INTERNAL_ERROR: return "An internal cuSPARSE operation failed.";
+					case CUSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED: return "The matrix type is not supported by this function.";
+					default: return "Unknown error";
+				}
+			}
+
+			inline auto checkCusparseError(cusparseStatus_t stat, const char* file, int line) -> void
+			{
+				if(stat != CUSPARSE_STATUS_SUCCESS)
+				{
+					throw std::runtime_error{"cuSPARSE call failed at " + std::string{file} + ":" + std::to_string(line) +
+						": " + getCusparseErrorString(stat)};
+				}
 			}
 		}
 
@@ -70,6 +98,11 @@ namespace ddrf
 		inline auto checkCufft(cufftResult res, const char* file, int line) -> void
 		{
 			detail::checkCufftError(res, file, line);
+		}
+
+		inline auto checkCusparse(cusparseStatus_t stat, const char* file, int line) -> void
+		{
+			detail::checkCusparseError(stat, file, line);
 		}
 	}
 }

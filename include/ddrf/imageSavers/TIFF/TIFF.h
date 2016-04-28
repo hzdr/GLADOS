@@ -30,7 +30,7 @@ namespace ddrf
 
 			template<class T> struct BitsPerSample { static constexpr auto value = sizeof(T) << 3; };
 
-			struct TIFFDeleter { auto operator()(TIFF* p) -> void { TIFFClose(p); }};
+			struct TIFFDeleter { auto operator()(::TIFF* p) -> void { TIFFClose(p); }};
 		}
 
 		template <class MemoryManager>
@@ -42,8 +42,6 @@ namespace ddrf
 			public:
 					auto saveImage(Image<MemoryManager> image, std::string& path) const -> void
 					{
-						using value_type = typename Image<MemoryManager>::value_type;
-
 						path.append(".tif");
 						// w8 enables Bigtiff
 						auto tif = std::unique_ptr<::TIFF, detail::TIFFDeleter>{TIFFOpen(path.c_str(), "w8")};
@@ -55,7 +53,6 @@ namespace ddrf
 
 					auto saveVolume(Volume<MemoryManager> volume, std::string& path) const -> void
 					{
-						using value_type = typename Volume<MemoryManager>::value_type;
 						path.append(".tif");
 
 						auto tif = std::unique_ptr<::TIFF, detail::TIFFDeleter>{TIFFOpen(path.c_str(), "w8")};
