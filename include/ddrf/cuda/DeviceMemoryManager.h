@@ -44,12 +44,12 @@ namespace ddrf
 
 				auto make_ptr(size_type width, size_type height) -> pointer_type_2D
 				{
-					return make_device_ptr<value_type>(width, height);
+					return make_device_ptr<value_type, CopyPolicy>(width, height);
 				}
 
 				auto make_ptr(size_type width, size_type height, size_type depth) -> pointer_type_3D
 				{
-					return make_device_ptr<value_type>(width, height, depth);
+					return make_device_ptr<value_type, CopyPolicy>(width, height, depth);
 				}
 
 				template <typename Source>
