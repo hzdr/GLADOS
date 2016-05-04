@@ -134,7 +134,8 @@ namespace ddrf
 			protected:
 				~sync_copy_policy() = default;
 
-				/* 1D copies*/
+				/* 1D copies
+				 * Note that size is already in bytes */
 				template <class Dest, class Src>
 				inline auto copy(Dest& dest, const Src& src, std::size_t size) const -> void
 				{
@@ -188,7 +189,8 @@ namespace ddrf
 
 				~async_copy_policy() = default;
 
-				/* 1D copies */
+				/* 1D copies
+				 * Note that size is already in bytes*/
 				template <class Dest, class Src>
 				inline auto copy(Dest& dest, const Src& src, std::size_t size) const -> void
 				{
