@@ -1,6 +1,7 @@
 #ifndef PIPELINE_STAGE_H_
 #define PIPELINE_STAGE_H_
 
+#include <cstddef>
 #include <thread>
 #include <utility>
 
@@ -27,6 +28,14 @@ namespace ddrf
 				template <typename... Args>
 				Stage(Args&&... args)
 				: InputSide<input_type>()
+				, OutputSide<output_type>()
+				, Implementation(std::forward<Args>(args)...)
+				{
+				}
+
+				template <typename... Args>
+				Stage(std::size_t input_limit, Args&&... args)
+				: InputSide<input_type>(input_limit)
 				, OutputSide<output_type>()
 				, Implementation(std::forward<Args>(args)...)
 				{
