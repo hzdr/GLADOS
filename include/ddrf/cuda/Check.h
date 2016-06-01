@@ -10,6 +10,8 @@
 #include <cufft.h>
 #include <cusparse.h>
 
+#include "Exception.h"
+
 #define CHECK(x) ddrf::cuda::check(x, __FILE__, __LINE__)
 #define CHECK_CUFFT(x) ddrf::cuda::checkCufft(x, __FILE__, __LINE__)
 #define CHECK_CUSPARSE(x) ddrf::cuda::checkCusparse(x, __FILE__, __LINE__)
@@ -24,7 +26,10 @@ namespace ddrf
 			{
 				if(err != cudaSuccess)
 				{
-					throw std::runtime_error{"CUDA call failed at " + std::string(file) + ":" + std::to_string(line) +
+					if(err == cudaErrorMemoryAllocation)
+						throw ddrf::cuda::out_of_memory{};
+					else
+						throw std::runtime_error{"CUDA call failed at " + std::string(file) + ":" + std::to_string(line) +
 							": " + std::string(cudaGetErrorString(err))};
 				}
 			}
