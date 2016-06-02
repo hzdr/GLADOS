@@ -108,7 +108,7 @@ namespace ddrf
 					{
 						case static_cast<std::int32_t>(Datatype::tn_unsigned_char):
 						{
-							auto buffer = std::unique_ptr<std::uint8_t>{new std::uint8_t[width * height]};
+							auto buffer = std::unique_ptr<std::uint8_t[]>{new std::uint8_t[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(std::uint8_t));
 							readBuffer<value_type, std::uint8_t>(img_buffer.get(), buffer.get(), width, height);
 							break;
@@ -116,7 +116,7 @@ namespace ddrf
 
 						case static_cast<std::int32_t>(Datatype::tn_unsigned_short):
 						{
-							auto buffer = std::unique_ptr<std::uint16_t>{new std::uint16_t[width * height]};
+							auto buffer = std::unique_ptr<std::uint16_t[]>{new std::uint16_t[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(std::uint16_t));
 							readBuffer<value_type, std::uint16_t>(img_buffer.get(), buffer.get(), width, height);
 							break;
@@ -124,7 +124,7 @@ namespace ddrf
 
 						case static_cast<std::int32_t>(Datatype::tn_dword):
 						{
-							auto buffer = std::unique_ptr<std::uint32_t>{new std::uint32_t[width * height]};
+							auto buffer = std::unique_ptr<std::uint32_t[]>{new std::uint32_t[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(std::uint32_t));
 							readBuffer<value_type, std::uint32_t>(img_buffer.get(), buffer.get(), width, height);
 							break;
@@ -132,7 +132,7 @@ namespace ddrf
 
 						case static_cast<std::int32_t>(Datatype::tn_double):
 						{
-							auto buffer = std::unique_ptr<double>{new double[width * height]};
+							auto buffer = std::unique_ptr<double[]>{new double[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(double));
 							readBuffer<value_type, double>(img_buffer.get(), buffer.get(), width, height);
 							break;
@@ -140,7 +140,7 @@ namespace ddrf
 
 						case static_cast<std::int32_t>(Datatype::tn_float):
 						{
-							auto buffer = std::unique_ptr<float>{new float[width * height]};
+							auto buffer = std::unique_ptr<float[]>{new float[width * height]};
 							readEntry(file, buffer.get(), width * height * sizeof(float));
 							readBuffer<value_type, float>(img_buffer.get(), buffer.get(), width, height);
 							break;
