@@ -87,7 +87,7 @@ namespace ddrf
 					}
 
 					// jump over image header
-					auto image_header = std::unique_ptr<std::uint8_t>(new std::uint8_t[header.image_header_size]);
+					auto image_header = std::unique_ptr<std::uint8_t[]>(new std::uint8_t[header.image_header_size]);
 					readEntry(file, image_header.get(), header.image_header_size);
 						// ...
 
