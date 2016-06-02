@@ -90,7 +90,8 @@ namespace ddrf
 					std::unique_ptr<T[], Deleter> ptr_;
 			};
 			template <class T> using unique_device_ptr = unique_ptr<T, device_deleter, Target::Device>;
-			template <class T> using unique_host_ptr = unique_ptr<T, host_deleter, Target::Host>;
+			template <class T> using unique_std_host_ptr = unique_ptr<T, std::default_delete<T[]>, Target::Host>;
+			template <class T> using unique_pinned_host_ptr = unique_ptr<T, host_deleter, Target::Host>;
 
 			template <class T1, class D1, Target t1, class T2, class D2, Target t2>
 			inline auto operator==(const unique_ptr<T1, D1, t2>& x, const unique_ptr<T2, D2, t2>& y) noexcept -> bool
@@ -226,11 +227,69 @@ namespace ddrf
 				cudaStream_t stream_;
 		};
 
+		template <class T>
+		struct std_allocation_policy
+		{
+			using ptr_type_1D = detail::unique_std_host_ptr<T>;
+			using ptr_type_2D = detail::unique_std_host_ptr<T>;
+			using ptr_type_3D = detail::unique_std_host_ptr<T>;
+
+			static auto allocate(std::size_t length) -> ptr_type_1D
+			{
+				auto p = new T[length];
+				return ptr_type_1D(p);
+			}
+
+			static auto allocate(std::size_t width, std::size_t height) -> ptr_type_2D
+			{
+				auto p = new T[width * height];
+				return ptr_type_2D(p);
+			}
+
+			static auto allocate(std::size_t width, std::size_t height, std::size_t depth) -> ptr_type_3D
+			{
+				auto p = new T[width * height * depth];
+				return ptr_type_3D(p);
+			}
+		};
+
+		template <class T>
+		struct pinned_allocation_policy
+		{
+			using ptr_type_1D = detail::unique_pinned_host_ptr<T>;
+			using ptr_type_2D = detail::unique_pinned_host_ptr<T>;
+			using ptr_type_3D = detail::unique_pinned_host_ptr<T>;
+
+			static auto allocate(std::size_t length) -> ptr_type_1D
+			{
+				auto p = static_cast<T*>(nullptr);
+				auto size = length * sizeof(T);
+				CHECK(cudaMallocHost(&p, size));
+				return ptr_type_1D(p);
+			}
+
+			static auto allocate(std::size_t width, std::size_t height) -> ptr_type_2D
+			{
+				auto p = static_cast<T*>(nullptr);
+				auto pitch = width * sizeof(T);
+				CHECK(cudaMallocHost(&p, pitch * height));
+				return ptr_type_2D(p);
+			}
+
+			static auto allocate(std::size_t width, std::size_t height, std::size_t depth) -> ptr_type_3D
+			{
+				auto p = static_cast<T*>(nullptr);
+				auto pitch = width * sizeof(T);
+				CHECK(cudaMallocHost(&p, pitch * height * depth));
+				return ptr_type_3D(p);
+			}
+		};
+
 		template <class T, class CopyPolicy> using device_ptr = ddrf::ptr<T, CopyPolicy, detail::unique_device_ptr<T>>;
-		template <class T, class CopyPolicy> using host_ptr = ddrf::ptr<T, CopyPolicy, detail::unique_host_ptr<T>>;
+		template <class T, class CopyPolicy, class Underlying> using host_ptr = ddrf::ptr<T, CopyPolicy, Underlying>;
 
 		template <class T, class CopyPolicy, class is3D> using pitched_device_ptr = ddrf::pitched_ptr<T, CopyPolicy, is3D, detail::unique_device_ptr<T>>;
-		template <class T, class CopyPolicy, class is3D> using pitched_host_ptr = ddrf::pitched_ptr<T, CopyPolicy, is3D, detail::unique_host_ptr<T>>;
+		template <class T, class CopyPolicy, class is3D, class Underlying> using pitched_host_ptr = ddrf::pitched_ptr<T, CopyPolicy, is3D, Underlying>;
 
 		/*
 		 * Array types with unknown bounds
@@ -244,13 +303,11 @@ namespace ddrf
 			return device_ptr<T, CopyPolicy>(detail::unique_device_ptr<T>(p), size);
 		}
 
-		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_host_ptr(std::size_t length) -> host_ptr<T, CopyPolicy>
+		template <class T, class AllocationPolicy = std_allocation_policy<T>, class CopyPolicy = sync_copy_policy>
+		auto make_host_ptr(std::size_t length) -> host_ptr<T, CopyPolicy, typename AllocationPolicy::ptr_type_1D>
 		{
-			auto p = static_cast<T*>(nullptr);
 			auto size = length * sizeof(T);
-			CHECK(cudaMallocHost(&p, size));
-			return host_ptr<T, CopyPolicy>(detail::unique_host_ptr<T>(p), size);
+			return host_ptr<T, CopyPolicy, typename AllocationPolicy::ptr_type_1D>(AllocationPolicy::allocate(length), size);
 		}
 
 		template <class T, class CopyPolicy = sync_copy_policy>
@@ -262,13 +319,13 @@ namespace ddrf
 			return pitched_device_ptr<T, CopyPolicy, std::false_type>(detail::unique_device_ptr<T>(p), pitch, width, height);
 		}
 
-		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_host_ptr(std::size_t width, std::size_t height) -> pitched_host_ptr<T, CopyPolicy, std::false_type>
+		template <class T, class AllocationPolicy = std_allocation_policy<T>, class CopyPolicy = sync_copy_policy>
+		auto make_host_ptr(std::size_t width, std::size_t height)
+		-> pitched_host_ptr<T, CopyPolicy, std::false_type, typename AllocationPolicy::ptr_type_2D>
 		{
-			auto p = static_cast<T*>(nullptr);
 			auto pitch = width * sizeof(T);
-			CHECK(cudaMallocHost(&p, pitch * height));
-			return pitched_host_ptr<T, CopyPolicy, std::false_type>(detail::unique_host_ptr<T>(p), pitch, width, height);
+			return pitched_host_ptr<T, CopyPolicy, std::false_type, typename AllocationPolicy::ptr_type_2D>
+				(AllocationPolicy::allocate(width, height), pitch, width, height);
 		}
 
 		template <class T, class CopyPolicy = sync_copy_policy>
@@ -282,13 +339,13 @@ namespace ddrf
 					pitchedPtr.pitch, width, height, depth);
 		}
 
-		template <class T, class CopyPolicy = sync_copy_policy>
-		auto make_host_ptr(std::size_t width, std::size_t height, std::size_t depth) -> pitched_host_ptr<T, CopyPolicy, std::true_type>
+		template <class T, class AllocationPolicy = std_allocation_policy<T>, class CopyPolicy = sync_copy_policy>
+		auto make_host_ptr(std::size_t width, std::size_t height, std::size_t depth)
+		-> pitched_host_ptr<T, CopyPolicy, std::true_type, typename AllocationPolicy::ptr_type_3D>
 		{
-			auto p = static_cast<T*>(nullptr);
 			auto pitch = width * sizeof(T);
-			CHECK(cudaMallocHost(&p, pitch * height * depth));
-			return pitched_host_ptr<T, CopyPolicy, std::true_type>(detail::unique_host_ptr<T>(p), pitch, width, height, depth);
+			return pitched_host_ptr<T, CopyPolicy, std::true_type, typename AllocationPolicy::ptr_type_3D>
+				(AllocationPolicy::allocate(width, height, depth), pitch, width, height, depth);
 		}
 
 		namespace detail

@@ -10,24 +10,24 @@ namespace ddrf
 {
 	namespace cuda
 	{
-		template <class T, class CopyPolicy = sync_copy_policy>
+		template <class T, class AllocationPolicy = std_allocation_policy<T>, class CopyPolicy = sync_copy_policy>
 		class HostMemoryManager : public CopyPolicy
 		{
 			public:
 				using value_type = T;
-				using pointer_type_2D = pitched_host_ptr<T, CopyPolicy, std::false_type>;
-				using pointer_type_3D = pitched_host_ptr<T, CopyPolicy, std::true_type>;
+				using pointer_type_2D = pitched_host_ptr<T, CopyPolicy, std::false_type, typename AllocationPolicy::ptr_type_2D>;
+				using pointer_type_3D = pitched_host_ptr<T, CopyPolicy, std::true_type, typename AllocationPolicy::ptr_type_3D>;
 				using size_type = std::size_t;
 
 			protected:
 				inline auto make_ptr(size_type width, size_type height) -> pointer_type_2D
 				{
-					return make_host_ptr<value_type, CopyPolicy>(width, height);
+					return make_host_ptr<value_type, AllocationPolicy, CopyPolicy>(width, height);
 				}
 
 				inline auto make_ptr(size_type width, size_type height, size_type depth) -> pointer_type_3D
 				{
-					return make_host_ptr<value_type, CopyPolicy>(width, height, depth);
+					return make_host_ptr<value_type, AllocationPolicy, CopyPolicy>(width, height, depth);
 				}
 
 				template <typename Source>
