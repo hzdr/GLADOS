@@ -141,6 +141,11 @@ namespace ddrf
 				return data_;
 			}
 
+			auto reset() noexcept -> void
+			{
+				data_.reset();
+			}
+
 		private:
 			size_type width_;
 			size_type height_;

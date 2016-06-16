@@ -118,6 +118,11 @@ namespace ddrf
 				return data_;
 			}
 
+			auto reset() noexcept -> void
+			{
+				data_.reset();
+			}
+
 			auto operator[](size_type i) -> Image<MemoryManager>
 			{
 				using underlying = typename pointer_type_2D::underlying_type;
