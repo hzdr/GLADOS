@@ -126,7 +126,7 @@ namespace ddrf
                     return pointer{ptr, pitch};
                 }
 
-                auto deallocate(pointer p, size_type = 0) noexcept -> void
+                auto deallocate(pointer p, size_type = 0, size_type = 0) noexcept -> void
                 {
                     auto err = cudaFree(reinterpret_cast<void*>(p.ptr));
                     if(err != cudaSuccess)
@@ -183,7 +183,7 @@ namespace ddrf
                     return pointer{pitched_ptr.ptr, pitched_ptr.pitch};
                 }
 
-                auto deallocate(pointer p) noexcept -> void
+                auto deallocate(pointer p, size_type = 0, size_type = 0, size_type = 0) noexcept -> void
                 {
                     auto err = cudaFree(reinterpret_cast<void*>(p.ptr));
                     if(err != cudaSuccess)
@@ -199,6 +199,18 @@ namespace ddrf
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
         };
+
+        template <class T1, memory_layout ml1, class T2, memory_layout ml2>
+        auto operator==(const device_allocator<T1, ml1>& lhs, const device_allocator<T2, ml2>& rhs) noexcept -> bool
+        {
+            return ml1 == ml2;
+        }
+
+        template <class T1, memory_layout ml1, class T2, memory_layout ml2>
+        auto operator!=(const device_allocator<T1, ml1>& lhs, const device_allocator<T2, ml2>& rhs) noexcept -> bool
+        {
+            return ml1 != ml2;
+        }
     }
 }
 

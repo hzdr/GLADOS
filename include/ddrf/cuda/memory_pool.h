@@ -72,7 +72,6 @@ namespace ddrf
 
                     if(ptr == nullptr)
                     {
-                        // the correct overload is chosen at compile time with enable_if
                         ptr = alloc_.allocate(ptr_width_);
                         alloc_.fill(ptr, 0, ptr_width_);
                     }
@@ -160,7 +159,6 @@ namespace ddrf
 
                     if(ptr == nullptr)
                     {
-                        // the correct overload is chosen at compile time with enable_if
                         ptr = alloc_.allocate(ptr_width_, ptr_height_);
                         alloc_.fill(ptr, 0, ptr_width_, ptr_height_);
                     }
@@ -249,7 +247,6 @@ namespace ddrf
 
                     if(ptr == nullptr)
                     {
-                        // the correct overload is chosen at compile time with enable_if
                         ptr = alloc_.allocate(ptr_width_, ptr_height_, ptr_depth_);
                         alloc_.fill(ptr, 0, ptr_width_, ptr_height_, ptr_depth_);
                     }
