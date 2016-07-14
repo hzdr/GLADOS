@@ -8,9 +8,8 @@
 #endif
 
 #include <ddrf/cuda/exception.h>
-#include <ddrf/cuda/bits/location.h>
-#include <ddrf/cuda/bits/memory_layout.h>
 #include <ddrf/cuda/bits/pitched_ptr.h>
+#include <ddrf/memory.h>
 
 namespace ddrf
 {
@@ -31,11 +30,9 @@ namespace ddrf
         template <class T>
         class device_allocator<T, memory_layout::pointer_1D>
         {
-            private:
-                static constexpr auto ml = memory_layout::pointer_1D;
-
             public:
-                static constexpr auto memory_location = location::device;
+                static constexpr auto layout = memory_layout::pointer_1D;
+                static constexpr auto location = memory_location::device;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -47,7 +44,7 @@ namespace ddrf
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, ml>;
+                    using other = device_allocator<U, layout>;
                 };
 
                 device_allocator() noexcept = default;
@@ -56,7 +53,7 @@ namespace ddrf
                 template <class U, memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && ml == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;
@@ -87,11 +84,9 @@ namespace ddrf
         template <class T>
         class device_allocator<T, memory_layout::pointer_2D>
         {
-            private:
-                static constexpr auto ml = memory_layout::pointer_2D;
-
             public:
-                static constexpr auto memory_location = location::device;
+                static constexpr auto layout = memory_layout::pointer_2D;
+                static constexpr auto location = memory_location::device;
                 static constexpr auto alloc_needs_pitch = true;
 
                 using value_type = T;
@@ -103,7 +98,7 @@ namespace ddrf
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, ml>;
+                    using other = device_allocator<U, layout>;
                 };
 
                 device_allocator() noexcept = default;
@@ -112,7 +107,7 @@ namespace ddrf
                 template <class U, memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && ml == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;
@@ -144,11 +139,9 @@ namespace ddrf
         template <class T>
         class device_allocator<T, memory_layout::pointer_3D>
         {
-            private:
-                static constexpr auto ml = memory_layout::pointer_3D;
-
             public:
-                static constexpr auto memory_location = location::device;
+                static constexpr auto layout = memory_layout::pointer_3D;
+                static constexpr auto location = location::device;
                 static constexpr auto alloc_needs_pitch = true;
 
                 using value_type = T;
@@ -160,7 +153,7 @@ namespace ddrf
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, ml>;
+                    using other = device_allocator<U, layout>;
                 };
 
                 device_allocator() noexcept = default;
@@ -169,7 +162,7 @@ namespace ddrf
                 template <class U, memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && ml == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;

@@ -9,21 +9,21 @@
 #endif
 
 #include <ddrf/cuda/exception.h>
-#include <ddrf/cuda/bits/location.h>
-#include <ddrf/cuda/bits/memory_layout.h>
+#include <ddrf/memory.h>
 
 namespace ddrf
 {
     namespace cuda
     {
-        template <class T, memory_layout ml = memory_layout::pointer_1D>
+        template <class T, memory_layout ml>
         class host_allocator {};
 
         template <class T>
         class host_allocator<T, memory_layout::pointer_1D>
         {
             public:
-                static constexpr auto memory_location = location::host;
+                static constexpr auto layout = memory_layout::pointer_1D;
+                static constexpr auto location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -35,7 +35,7 @@ namespace ddrf
                 template <class U>
                 struct rebind
                 {
-                    using other = host_allocator<U, ml>;
+                    using other = host_allocator<U, layout>;
                 };
 
                 host_allocator() noexcept = default;
@@ -44,7 +44,7 @@ namespace ddrf
                 template <class U, memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && ml == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~host_allocator() = default;
@@ -74,7 +74,8 @@ namespace ddrf
         class host_allocator<T, memory_layout::pointer_2D>
         {
             public:
-                static constexpr auto memory_location = location::host;
+                static constexpr auto layout = memory_layout::pointer_2D;
+                static constexpr auto location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -86,7 +87,7 @@ namespace ddrf
                 template <class U>
                 struct rebind
                 {
-                    using other = host_allocator<U, ml>;
+                    using other = host_allocator<U, layout>;
                 };
 
                 host_allocator() noexcept = default;
@@ -95,7 +96,7 @@ namespace ddrf
                 template <class U, memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && ml == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~host_allocator() = default;
@@ -125,7 +126,8 @@ namespace ddrf
         class host_allocator<T, memory_layout::pointer_3D>
         {
             public:
-                static constexpr auto memory_location = location::host;
+                static constexpr auto layout = memory_layout::pointer_3D;
+                static constexpr auto location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -137,7 +139,7 @@ namespace ddrf
                 template <class U>
                 struct rebind
                 {
-                    using other = host_allocator<U, ml>;
+                    using other = host_allocator<U, layout>;
                 };
 
                 host_allocator() noexcept = default;
@@ -146,7 +148,7 @@ namespace ddrf
                 template <class U, memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && ml == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~host_allocator() = default;

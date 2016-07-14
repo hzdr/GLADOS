@@ -1,19 +1,13 @@
-#ifndef DDRF_IMAGE_H_
-#define DDRF_IMAGE_H_
+#ifndef DDRF_VOLUME_H_
+#define DDRF_VOLUME_H_
 
-#include <algorithm>
 #include <iterator>
 #include <memory>
-#include <type_traits>
-#include <stdexcept>
-#include <string>
-
-#include <ddrf/memory.h>
 
 namespace ddrf
 {
     template <class T, class Allocator>
-    class image
+    class volume
     {
         public:
             using value_type = T;
@@ -29,68 +23,69 @@ namespace ddrf
             using reverse_iterator = std::reverse_iterator<iterator>;
             using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-            explicit image(const Allocator& alloc = Allocator()) noexcept
-            : alloc_{alloc}, width_{0}, height_{0}, data_{nullptr}
+        public:
+            explicit volume(const Allocator& alloc = Allocator()) noexcept
+            : alloc_{alloc}, width_{0}, height_{0}, depth_{0}, data_{nullptr}
             {}
 
-            image(size_type width, size_type height, const T& value = T(), const Allocator& alloc = Allocator())
-            : alloc_{alloc}, width_{width}, height_{height}, data_{alloc_.allocate(width, height)}
+            volume(size_type width, size_type height, size_type depth, const T& value = T(), const Allocator& alloc = Allocator())
+            : alloc_{alloc}, width_{width}, height_{height}, depth_{depth}, data_{alloc_.allocate(width_, height_, depth_)}
             {
-                alloc_.fill(data_, value, width_, height_);
+                alloc_.fill(data_, value, width_, height_, depth_);
             }
 
-            explicit image(size_type width, size_type height)
-            : image(width, height, T(), Allocator())
+            explicit volume(size_type width, size_type height, size_type depth)
+            : volume(width, height, depth, T(), Allocator())
             {}
 
-            image(pointer data, size_type width, size_type height, const Allocator& alloc = Allocator())
-            : alloc_{alloc}, width_{width}, height_{height}, data_{data}
+            volume(pointer data, size_type width, size_type height, size_type depth, const Allocator& alloc = Allocator())
+            : alloc_{alloc}, width_{width}, height_{height}, depth_{depth}, data_{data}
             {}
 
-            image(const image& other, const Allocator& alloc)
-            : alloc_{alloc}, width_{other.width_}, height_{other.height_}, data_{alloc_.allocate(width, height)}
+            volume(const volume& other, const Allocator& alloc)
+            : alloc_{alloc}, width_{other.width_}, height_{other.height_}, depth_{other.depth_}, data_{alloc_.allocate(width_, height_, depth_)}
             {}
 
-            image(image&& other) noexcept
-            : alloc_{std::move(other.alloc_)}
-            , width_{other.width_}, height_{other.height_}, data_{std::move(other.data_)}
-            {
-                other.data_ = nullptr;
-            }
-
-            image(image&& other, const Allocator& alloc) noexcept
-            : alloc_{alloc}
-            , width_{other.width_}, height_{other.height_}, data_{std::move(other.data_)}
+            volume(volume&& other) noexcept
+            : alloc_{std::move(other.alloc_)}, width_{other.width_}, height_{other.height_}, depth_{other.depth_}, data_{std::move(other.data_)}
             {
                 other.data_ = nullptr;
             }
 
-            ~image()
+            volume(volume&& other, const Allocator& alloc) noexcept
+            : alloc_{alloc}, width_{other.width_}, height_{other.height_}, depth_{other.depth_}, data_{std::move(other.data_)}
             {
-                alloc_.deallocate(data_, width_, height_);
+                other.data_ = nullptr;
             }
 
-            auto operator=(const image& other) -> image&
+            ~volume()
+            {
+                alloc_.deallocate(data_, width_, height_, depth_);
+            }
+
+            auto operator=(const volume& other) -> volume&
             {
                 width_ = other.width_;
                 height_ = other.height_;
+                depth_ = other.depth_;
                 alloc_.deallocate(data_);
 
                 if(std::allocator_traits<allocator_type>::propagate_on_container_copy_assignment())
                     alloc_ = other.alloc_;
 
                 if(alloc_ != other.alloc_)
-                    data_ = other.alloc_.allocate(width_, height_);
+                    data_ = other.alloc_.allocate(width_, height_, depth_);
                 else
-                    data_ = alloc_.allocate(width_, height_);
+                    data_ = alloc_.allocate(width_, height_, depth_);
 
                 return *this;
             }
 
-            auto operator=(image&& other) -> image&
+            auto operator=(volume&& other) -> volume&
             {
                 width_ = other.width_;
                 height_ = other.height_;
+                depth_ = other.depth_;
 
                 if(std::allocator_traits<allocator_type>::propagate_on_container_move_assignment())
                     alloc_ = other.alloc_;
@@ -107,34 +102,35 @@ namespace ddrf
                 return alloc_;
             }
 
-            auto at(size_type x, size_type y) -> reference
+            auto at(size_type x, size_type y, size_type z) -> reference
             {
-                if((x > width_) || (y > height_))
-                    throw std::out_of_range{std::string{"Invalid pixel coordinates: "} + std::to_string(x) + std::string{"x"} + std::to_string(y)};
+                if((x > width_) || (y > height_) || (z > depth_))
+                    throw std::out_of_range{std::string{"Invalid pixel coordinates: "}
+                                            + std::to_string(x) + std::string{"x"} + std::to_string(y) + std::string{"x"} + std::to_string(z)};
 
-                return operator()(x, y);
+                return operator()(x, y, z);
             }
 
-            auto at(size_type x, size_type y) const -> const_reference
+            auto at(size_type x, size_type y, size_type z) const -> const_reference
             {
-                if((x > width_) || (y > height_))
+                if((x > width_) || (y > height_) || (z > depth_))
                     throw std::out_of_range{std::string{"Invalid pixel coordinates: "} + std::to_string(x) + std::string{"x"} + std::to_string(y)};
 
-                return operator()(x, y);
+                return operator()(x, y, z);
             }
 
-            auto operator()(size_type x, size_type y) -> reference
+            auto operator()(size_type x, size_type y, size_type z) -> reference
             {
                 static_assert(allocator_type::location == memory_location::host, "Access is not supported for non-CPU memory");
 
-                return data_[x + y * width_];
+                return data_[x + y * width_ + z * height_];
             }
 
-            auto operator()(size_type x, size_type y) const -> const_reference
+            auto operator()(size_type x, size_type y, size_type z) const -> const_reference
             {
                 static_assert(allocator_type::location == memory_location::host, "Access is not supported for non-CPU memory");
 
-                return data_[x + y * width];
+                return data_[x + y * width + z * height_];
             }
 
             auto data() noexcept -> T*
@@ -167,13 +163,13 @@ namespace ddrf
             auto end() noexcept -> iterator
             {
                 static_assert(allocator_type::location == memory_location::host, "Iteration is not supported for non-CPU memory");
-                return data_ + (width_ * height_);
+                return data_ + (width_ * height_ * depth_);
             }
 
             auto end() const noexcept -> const_iterator
             {
                 static_assert(allocator_type::location == memory_location::host, "Iteration is not supported for non-CPU memory");
-                return data_ + (width_ * height_);
+                return data_ + (width_ * height_ * depth_);
             }
 
             auto cend() const noexcept -> const_iterator
@@ -218,7 +214,7 @@ namespace ddrf
 
             auto size() noexcept -> size_type
             {
-                return width_ * height_;
+                return width_ * height_ * depth_;
             }
 
             auto width() noexcept -> size_type
@@ -231,9 +227,14 @@ namespace ddrf
                 return height_;
             }
 
+            auto depth() noexcept -> size_type
+            {
+                return depth_;
+            }
+
             auto fill(const T& value) -> void
             {
-                alloc_.fill(pointer, value, width_, height_);
+                alloc_.fill(pointer, value, width_, height_, depth_);
             }
 
             auto swap(image& other) -> void
@@ -241,6 +242,7 @@ namespace ddrf
                 std::swap(alloc_, other.alloc_);
                 std::swap(width_, other.width_);
                 std::swap(height_, other.height_);
+                std::swap(depth_, other.depth_);
                 std::swap(data_, other.data_);
             }
 
@@ -249,10 +251,11 @@ namespace ddrf
 
             size_type width_;
             size_type height_;
+            size_type depth_
             pointer data_;
     };
 }
 
 
 
-#endif /* IMAGE_H_ */
+#endif /* DDRF_VOLUME_H_ */

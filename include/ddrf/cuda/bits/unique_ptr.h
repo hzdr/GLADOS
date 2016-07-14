@@ -11,8 +11,8 @@
 #endif
 
 #include <ddrf/cuda/exception.h>
-#include <ddrf/cuda/bits/location.h>
 #include <ddrf/cuda/bits/pitched_ptr.h>
+#include <ddrf/memory.h>
 
 namespace ddrf
 {
@@ -21,10 +21,10 @@ namespace ddrf
         struct device_deleter { auto operator()(void* p) noexcept -> void { cudaFree(p); }};
         struct host_deleter { auto operator()(void* p) noexcept -> void { cudaFreeHost(p); }};
 
-        template <class T, class Deleter, bool pitched, location loc>
+        template <class T, class Deleter, bool pitched, memory_location loc>
         class unique_ptr {};
 
-        template <class T, class Deleter, location loc>
+        template <class T, class Deleter, memory_location loc>
         class unique_ptr<T, Deleter, true, loc>
         {
             public:
@@ -157,7 +157,7 @@ namespace ddrf
                 std::size_t pitch_;
         };
 
-        template <class T, class Deleter, location loc>
+        template <class T, class Deleter, memory_location loc>
         class unique_ptr<T, Deleter, false, loc>
         {
             public:
@@ -284,16 +284,16 @@ namespace ddrf
         };
 
         template <class T>
-        using device_ptr = unique_ptr<T, device_deleter, false, location::device>;
+        using device_ptr = unique_ptr<T, device_deleter, false, memory_location::device>;
 
         template <class T>
-        using pitched_device_ptr = unique_ptr<T, device_deleter, true, location::device>;
+        using pitched_device_ptr = unique_ptr<T, device_deleter, true, memory_location::device>;
 
         template <class T>
-        using host_ptr = unique_ptr<T, std::default_delete<T>[], false, location::host>;
+        using host_ptr = unique_ptr<T, std::default_delete<T[]>, false, memory_location::host>;
 
         template <class T>
-        using pinned_host_ptr = unique_ptr<T, host_deleter, false, location::host>;
+        using pinned_host_ptr = unique_ptr<T, host_deleter, false, memory_location::host>;
 
         template <class T>
         auto make_unique_device(std::size_t n) -> device_ptr<T>
@@ -486,7 +486,7 @@ namespace ddrf
             return !(nullptr < y);
         }
 
-        template <class T, class Deleter, bool pitched, location loc>
+        template <class T, class Deleter, bool pitched, memory_location loc>
         auto swap(unique_ptr<T, Deleter, pitched, loc>& lhs, unique_ptr<T, Deleter, pitched, loc>& rhs) noexcept -> void
         {
             lhs.swap(rhs);

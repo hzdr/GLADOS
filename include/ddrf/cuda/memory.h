@@ -3,8 +3,6 @@
 
 #include <ddrf/cuda/bits/device_allocator.h>
 #include <ddrf/cuda/bits/host_allocator.h>
-#include <ddrf/cuda/bits/location.h>
-#include <ddrf/cuda/bits/memory_layout.h>
 #include <ddrf/cuda/bits/pitched_ptr.h>
 #include <ddrf/cuda/bits/unique_ptr.h>
 
