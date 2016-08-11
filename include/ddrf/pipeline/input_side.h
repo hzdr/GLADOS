@@ -4,17 +4,22 @@
 #include <type_traits>
 #include <utility>
 
-#include <ddrf/queue.h>
+#include <boost/lockfree/spsc_queue.hpp>
 
 namespace ddrf
 {
     namespace pipeline
     {
-        template <class InputT, class InputM>
+        template <class InputT>
         class input_side
         {
             public:
-                input_side() noexcept = default;
+                using queue_type = boost::lockfree::spsc_queue<InputT>;
+                using size_type = typename queue_type::size_type;
+
+            public:
+                input_side() = default;
+                input_side(size_type s) : input_queue_{s} {}
 
                 template <class T>
                 auto input(T&& t) -> typename std::enable_if<std::is_same<InputT, T>::value, void>::type
@@ -22,15 +27,8 @@ namespace ddrf
                     input_queue_.push(std::forward<T>(t));
                 }
 
-                template <class M>
-                auto input(M&& m) -> typename std::enable_if<std::is_same<InputM, M>::value, void>::type
-                {
-                    meta_queue_.push(std::forward<M>(m));
-                }
-
             private:
-                ddrf::queue<InputT> input_queue_;
-                ddrf::queue<InputM> meta_queue_;
+                queue_type input_queue_;
         };
     }
 }
