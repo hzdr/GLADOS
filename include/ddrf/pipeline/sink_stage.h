@@ -1,6 +1,7 @@
 #ifndef SINK_STAGE_H_
 #define SINK_STAGE_H_
 
+#include <functional>
 #include <utility>
 
 #include <ddrf/pipeline/input_side.h>
@@ -15,21 +16,22 @@ namespace ddrf
         {
             public:
                 using input_type = typename SinkT::input_type;
-                using size_type = typename input_side<InputT>::size_type;
+                using size_type = typename input_side<input_type>::size_type;
 
             public:
                 template <class... Args>
                 sink_stage(Args&&... args)
-                : SinkT(this->input_queue_, std::forward<Args>(args)...), input_side<input_type>()
+                : SinkT(std::forward<Args>(args)...), input_side<input_type>()
                 {}
 
                 template <class... Args>
-                sink_stage(size_type s, Args&&... args)
-                : SinkT(std::forward<Args>(args)...), input_side<input_type>(s)
+                sink_stage(size_type input_limit, Args&&... args)
+                : SinkT(std::forward<Args>(args)...), input_side<input_type>(input_limit)
                 {}
 
                 auto run() -> void
                 {
+                    SinkT::set_input_function(std::bind(&input_side<input_type>::take, this));
                     SinkT::run();
                 }
         };

@@ -4,15 +4,16 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #ifndef __CUDACC__
 #include <cuda_runtime.h>
 #endif
 
+#include <ddrf/bits/memory_location.h>
 #include <ddrf/cuda/exception.h>
 #include <ddrf/cuda/bits/pitched_ptr.h>
-#include <ddrf/memory.h>
 
 namespace ddrf
 {
@@ -21,16 +22,20 @@ namespace ddrf
         struct device_deleter { auto operator()(void* p) noexcept -> void { cudaFree(p); }};
         struct host_deleter { auto operator()(void* p) noexcept -> void { cudaFreeHost(p); }};
 
-        template <class T, class Deleter, bool pitched, memory_location loc>
+        template <class T, class Deleter, bool pitched, detail::memory_location loc, bool pinned>
         class unique_ptr {};
 
-        template <class T, class Deleter, memory_location loc>
-        class unique_ptr<T, Deleter, true, loc>
+        template <class T, class Deleter, detail::memory_location loc>
+        class unique_ptr<T, Deleter, true, loc, false> // As of now (CUDA 7.5) pinned host memory is never pitched
         {
             public:
                 using pointer = pitched_ptr<T>;
                 using element_type = T;
                 using deleter_type = Deleter;
+                using memory_location = loc;
+
+                static constexpr auto pitched_memory = true;
+                static constexpr auto pinned_memory = false;
 
                 constexpr unique_ptr() noexcept : ptr_{}, pitch_{0u}
                 {}
@@ -42,7 +47,7 @@ namespace ddrf
                  * following constructor accordingly as soon as CUDA supports C++17
                  */
                 explicit unique_ptr(pointer ptr) noexcept
-                : ptr_{ptr.ptr}, pitch_{ptr.pitch}
+                : ptr_{ptr.ptr()}, pitch_{ptr.pitch()}
                 {}
 
                 /*
@@ -59,12 +64,12 @@ namespace ddrf
                  */
                 unique_ptr(pointer ptr,
                             typename std::conditional<std::is_reference<deleter_type>::value, deleter_type, const deleter_type&>::type d1) noexcept
-                : ptr_{ptr.ptr, d1}, pitch_{ptr.pitch}
+                : ptr_{ptr.ptr(), d1}, pitch_{ptr.pitch()}
                 {}
 
                 unique_ptr(pointer ptr,
                             typename std::remove_reference<deleter_type>::type&& d2) noexcept
-                : ptr_{ptr.ptr, d2}, pitch_{ptr.pitch}
+                : ptr_{ptr.ptr(), d2}, pitch_{ptr.pitch()}
                 {}
 
                 unique_ptr(unique_ptr&& u)
@@ -96,13 +101,14 @@ namespace ddrf
                 /*
                  * FIXME: Remove this method as soon as CUDA supports C++17
                  *
-                 * Note that the following method has a different behaviour when
+                 * Note that the following method has a slightly different behaviour when
                  * compared to the STL's unique_ptr. The latter uses pointer() as a default
-                 * argument.
+                 * argument while this version does not.
                  */
                 auto reset(pointer ptr) noexcept -> void
                 {
-                    ptr_.reset(ptr.ptr);
+                    ptr_.reset(ptr.ptr());
+                    pitch_ = ptr.pitch();
                 }
 
                 /* FIXME: Change this to standard behaviour as soon as CUDA supports C++17. */
@@ -112,6 +118,7 @@ namespace ddrf
                 auto reset(std::nullptr_t p) noexcept -> void
                 {
                     ptr_.reset(p);
+                    pitch_ = 0;
                 }
 
                 auto swap(unique_ptr& other) noexcept -> void
@@ -147,23 +154,22 @@ namespace ddrf
                     return pitch_;
                 }
 
-                constexpr auto is_pitched() const noexcept -> bool
-                {
-                    return true;
-                }
-
             private:
                 std::unique_ptr<element_type[], deleter_type> ptr_;
                 std::size_t pitch_;
         };
 
-        template <class T, class Deleter, memory_location loc>
-        class unique_ptr<T, Deleter, false, loc>
+        template <class T, class Deleter, detail::memory_location loc, bool pinned>
+        class unique_ptr<T, Deleter, false, loc, pinned>
         {
             public:
                 using pointer = T*;
                 using element_type = T;
                 using deleter_type = Deleter;
+                using memory_location = loc;
+
+                static constexpr auto pitched_memory = false;
+                static constexpr auto pinned_memory = pinned;
 
                 constexpr unique_ptr() noexcept : ptr_{}
                 {}
@@ -274,26 +280,21 @@ namespace ddrf
                     return 0;
                 }
 
-                constexpr auto is_pitched() const noexcept -> bool
-                {
-                    return false;
-                }
-
             private:
                 std::unique_ptr<element_type[], deleter_type> ptr_;
         };
 
         template <class T>
-        using device_ptr = unique_ptr<T, device_deleter, false, memory_location::device>;
+        using device_ptr = unique_ptr<T, device_deleter, false, detail::memory_location::device, false>;
 
         template <class T>
-        using pitched_device_ptr = unique_ptr<T, device_deleter, true, memory_location::device>;
+        using pitched_device_ptr = unique_ptr<T, device_deleter, true, detail::memory_location::device, false>;
 
         template <class T>
-        using host_ptr = unique_ptr<T, std::default_delete<T[]>, false, memory_location::host>;
+        using host_ptr = unique_ptr<T, std::default_delete<T[]>, false, detail::memory_location::host, false>;
 
         template <class T>
-        using pinned_host_ptr = unique_ptr<T, host_deleter, false, memory_location::host>;
+        using pinned_host_ptr = unique_ptr<T, host_deleter, false, detail::memory_location::host, true>;
 
         template <class T>
         auto make_unique_device(std::size_t n) -> device_ptr<T>
@@ -486,7 +487,7 @@ namespace ddrf
             return !(nullptr < y);
         }
 
-        template <class T, class Deleter, bool pitched, memory_location loc>
+        template <class T, class Deleter, bool pitched, detail::memory_location loc>
         auto swap(unique_ptr<T, Deleter, pitched, loc>& lhs, unique_ptr<T, Deleter, pitched, loc>& rhs) noexcept -> void
         {
             lhs.swap(rhs);

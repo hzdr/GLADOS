@@ -19,8 +19,8 @@ namespace ddrf
     class pool_allocator<T, memory_layout::pointer_1D, InternalAlloc>
     {
         public:
-            static constexpr auto layout = memory_layout::pointer_1D;
-            static constexpr auto location = InternalAlloc::location;
+            static constexpr auto memory_layout = InternalAlloc::memory_layout;
+            static constexpr auto memory_location = InternalAlloc::memory_location;
             static constexpr auto alloc_needs_pitch = InternalAlloc::alloc_needs_pitch;
 
             using value_type = T;
@@ -28,21 +28,25 @@ namespace ddrf
             using const_pointer = typename InternalAlloc::const_pointer;
             using size_type = typename InternalAlloc::size_type;
             using difference_type = typename InternalAlloc::difference_type;
+            using propagate_on_container_copy_assignment = std::true_type;
+            using propagate_on_container_move_assignment = std::true_type;
+            using propagate_on_container_swap = std::true_type;
+            using is_always_equal = std::true_type;
 
             template <class U>
             struct rebind
             {
-                using other = pool_allocator<U, layout, InternalAlloc>;
+                using other = pool_allocator<U, memory_layout, InternalAlloc>;
             };
 
         public:
             pool_allocator() noexcept = default;
             pool_allocator(const pool_allocator& other) noexcept = default;
 
-            template <class U, memory_layout uml>
+            template <class U, ddrf::memory_layout uml>
             pool_allocator(const pool_allocator& other) noexcept
             {
-                static_assert(std::is_same<T, U>::value && (layout == uml), "Attempting to copy incompatible pool allocator");
+                static_assert(std::is_same<T, U>::value && (memory_layout == uml), "Attempting to copy incompatible pool allocator");
             }
 
             auto operator=(const pool_allocator& other) noexcept -> pool_allocator&
@@ -139,6 +143,10 @@ namespace ddrf
             using const_pointer = typename InternalAlloc::const_pointer;
             using size_type = typename InternalAlloc::size_type;
             using difference_type = typename InternalAlloc::difference_type;
+            using propagate_on_container_copy_assignment = std::true_type;
+            using propagate_on_container_move_assignment = std::true_type;
+            using propagate_on_container_swap = std::true_type;
+            using is_always_equal = std::true_type;
 
             template <class U>
             struct rebind
@@ -244,6 +252,10 @@ namespace ddrf
             static constexpr auto layout = memory_layout::pointer_3D;
             static constexpr auto location = InternalAlloc::location;
             static constexpr auto alloc_needs_pitch = InternalAlloc::alloc_needs_pitch;
+            using propagate_on_container_copy_assignment = std::true_type;
+            using propagate_on_container_move_assignment = std::true_type;
+            using propagate_on_container_swap = std::true_type;
+            using is_always_equal = std::true_type;
 
             using value_type = T;
             using pointer = typename InternalAlloc::pointer;

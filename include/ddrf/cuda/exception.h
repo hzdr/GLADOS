@@ -19,7 +19,8 @@ namespace ddrf
                 bad_alloc() noexcept = default;
                 virtual ~bad_alloc() = default;
 
-                auto operator=(const bad_alloc& other) noexcept-> bad_alloc&;
+                auto operator=(const bad_alloc& other) noexcept-> bad_alloc& {}
+
                 virtual auto what() const noexcept -> const char*
                 {
                     return cudaGetErrorString(cudaErrorMemoryAllocation);
@@ -30,15 +31,15 @@ namespace ddrf
         class invalid_argument : public std::invalid_argument
         {
             public:
-                explicit invalid_argument(const std::string& what_arg)
-                : std::invalid_argument{what_arg}
-                {}
-
-                explicit invalid_argument(const char* what_arg)
-                : std::invalid_argument{what_arg}
-                {}
-
+                using std::invalid_argument::invalid_argument;
                 virtual ~invalid_argument() = default;
+        };
+
+        class runtime_error : public std::runtime_error
+        {
+            public:
+                using std::runtime_error::runtime_error;
+                virtual ~runtime_error() = default;
         };
     }
 }

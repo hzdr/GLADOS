@@ -1,6 +1,7 @@
 #ifndef SOURCE_STAGE_H_
 #define SOURCE_STAGE_H_
 
+#include <functional>
 #include <utility>
 
 #include <ddrf/pipeline/output_side.h>
@@ -19,11 +20,12 @@ namespace ddrf
             public:
                 template <class... Args>
                 source_stage(Args&&... args)
-                : SourceT(this, std::forward<Args>(args)...), output_side<output_type>()
+                : SourceT(std::forward<Args>(args)...), output_side<output_type>()
                 {}
 
                 auto run() -> void
                 {
+                    SourceT::set_output_function(std::bind(&output_side<output_type>::output, this, std::placeholders::_1));
                     SourceT::run();
                 }
         };

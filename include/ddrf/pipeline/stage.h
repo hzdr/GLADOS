@@ -1,7 +1,7 @@
 #ifndef STAGE_H_
 #define STAGE_H_
 
-#include <future>
+#include <functional>
 #include <utility>
 
 #include <ddrf/pipeline/input_side.h>
@@ -19,25 +19,27 @@ namespace ddrf
             public:
                 using input_type = typename StageT::input_type;
                 using output_type = typename StageT::output_type;
-                using size_type = typename input_side<InputT>::size_type;
+                using size_type = typename input_side<input_type>::size_type;
 
             public:
                 template <class... Args>
                 stage(Args&&... args)
-                : StageT(this->input_queue_, this, std::forward<Args>(args)...)
+                : StageT(std::forward<Args>(args)...)
                 , input_side<input_type>()
                 , output_side<output_type>()
                 {}
 
                 template <class... Args>
-                stage(size_type s, Args&&... args)
+                stage(size_type input_limit, Args&&... args)
                 : Implementation(std::forward<Args>(args)...)
-                , input_side<input_type>(s)
+                , input_side<input_type>(input_limit)
                 , output_side<output_type>()
                 {}
 
                 auto run() -> void
                 {
+                    StageT::set_input_function(std::bind(&input_side<input_type>::take, this));
+                    StageT::set_output_function(std::bind(&output_side<output_type>::output, this, std::placeholders::_1));
                     StageT::run();
                 }
         };

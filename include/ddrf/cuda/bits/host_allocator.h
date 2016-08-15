@@ -8,8 +8,9 @@
 #include <cuda_runtime.h>
 #endif
 
+#include <ddrf/bits/memory_layout.h>
+#include <ddrf/bits/memory_location.h>
 #include <ddrf/cuda/exception.h>
-#include <ddrf/memory.h>
 
 namespace ddrf
 {
@@ -22,8 +23,8 @@ namespace ddrf
         class host_allocator<T, memory_layout::pointer_1D>
         {
             public:
-                static constexpr auto layout = memory_layout::pointer_1D;
-                static constexpr auto location = memory_location::host;
+                static constexpr auto memory_layout = memory_layout::pointer_1D;
+                static constexpr auto memory_location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -31,20 +32,24 @@ namespace ddrf
                 using const_pointer = const pointer;
                 using size_type = std::size_t;
                 using difference_type = std::ptrdiff_t;
+                using propagate_on_container_copy_assignment = std::true_type;
+                using propagate_on_container_move_assignment = std::true_type;
+                using propagate_on_container_swap = std::true_type;
+                using is_always_equal = std::true_type;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = host_allocator<U, layout>;
+                    using other = host_allocator<U, memory_layout>;
                 };
 
                 host_allocator() noexcept = default;
                 host_allocator(const host_allocator& other) noexcept = default;
 
-                template <class U, memory_layout uml>
+                template <class U, ddrf::memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~host_allocator() = default;
@@ -66,7 +71,7 @@ namespace ddrf
 
                 auto fill(pointer p, int value, size_type n) -> void
                 {
-                    std::fill(p, p + n, value);
+                    std::fill_n(p, n, value);
                 }
         };
 
@@ -74,8 +79,8 @@ namespace ddrf
         class host_allocator<T, memory_layout::pointer_2D>
         {
             public:
-                static constexpr auto layout = memory_layout::pointer_2D;
-                static constexpr auto location = memory_location::host;
+                static constexpr auto memory_layout = memory_layout::pointer_2D;
+                static constexpr auto memory_location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -83,6 +88,10 @@ namespace ddrf
                 using const_pointer = const pointer;
                 using size_type = std::size_t;
                 using difference_type = std::ptrdiff_t;
+                using propagate_on_container_copy_assignment = std::true_type;
+                using propagate_on_container_move_assignment = std::true_type;
+                using propagate_on_container_swap = std::true_type;
+                using is_always_equal = std::true_type;
 
                 template <class U>
                 struct rebind
@@ -93,10 +102,10 @@ namespace ddrf
                 host_allocator() noexcept = default;
                 host_allocator(const host_allocator& other) noexcept = default;
 
-                template <class U, memory_layout uml>
+                template <class U, ddrf::memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~host_allocator() = default;
@@ -118,7 +127,7 @@ namespace ddrf
 
                 auto fill(pointer p, int value, size_type x, size_type y) -> void
                 {
-                    std::fill(p, p + (x * y), value);
+                    std::fill_n(p, x * y, value);
                 }
         };
 
@@ -126,8 +135,8 @@ namespace ddrf
         class host_allocator<T, memory_layout::pointer_3D>
         {
             public:
-                static constexpr auto layout = memory_layout::pointer_3D;
-                static constexpr auto location = memory_location::host;
+                static constexpr auto memory_layout = memory_layout::pointer_3D;
+                static constexpr auto memory_location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -135,6 +144,10 @@ namespace ddrf
                 using const_pointer = const pointer;
                 using size_type = std::size_t;
                 using difference_type = std::ptrdiff_t;
+                using propagate_on_container_copy_assignment = std::true_type;
+                using propagate_on_container_move_assignment = std::true_type;
+                using propagate_on_container_swap = std::true_type;
+                using is_always_equal = std::true_type;
 
                 template <class U>
                 struct rebind
@@ -145,10 +158,10 @@ namespace ddrf
                 host_allocator() noexcept = default;
                 host_allocator(const host_allocator& other) noexcept = default;
 
-                template <class U, memory_layout uml>
+                template <class U, ddrf::memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~host_allocator() = default;
@@ -170,7 +183,7 @@ namespace ddrf
 
                 auto fill(pointer p, int value, size_type x, size_type y, size_type z) -> void
                 {
-                    std::fill(p, p + (x * y * z), value);
+                    std::fill_n(p, x * y * z, value);
                 }
         };
 
@@ -187,7 +200,5 @@ namespace ddrf
         }
     }
 }
-
-
 
 #endif /* DDRF_CUDA_BITS_HOST_ALLOCATOR_H_ */

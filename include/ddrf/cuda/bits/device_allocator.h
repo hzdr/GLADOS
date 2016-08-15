@@ -7,23 +7,16 @@
 #include <cuda_runtime.h>
 #endif
 
+#include <ddrf/bits/memory_layout.h>
+#include <ddrf/bits/memory_location.h>
 #include <ddrf/cuda/exception.h>
 #include <ddrf/cuda/bits/pitched_ptr.h>
-#include <ddrf/memory.h>
+
 
 namespace ddrf
 {
     namespace cuda
     {
-        /*
-         * FIXME: C++14 support
-         *  Once C++14 is supported by CUDA, add the following type:
-         *      using propagate_on_container_move_assignment = std::true_type
-         *
-         * FIXME: C++17 support
-         *  Once C++17 is supported by CUDA, add the following type:
-         *      using is_always_equal = std::true_type
-         */
         template <class T, memory_layout ml>
         class device_allocator {};
 
@@ -31,8 +24,8 @@ namespace ddrf
         class device_allocator<T, memory_layout::pointer_1D>
         {
             public:
-                static constexpr auto layout = memory_layout::pointer_1D;
-                static constexpr auto location = memory_location::device;
+                static constexpr auto memory_layout = memory_layout::pointer_1D;
+                static constexpr auto memory_location = memory_location::device;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -40,20 +33,24 @@ namespace ddrf
                 using const_pointer = const pointer;
                 using size_type = std::size_t;
                 using difference_type = std::ptrdiff_t;
+                using propagate_on_container_copy_assignment = std::true_type;
+                using propagate_on_container_move_assignment = std::true_type;
+                using propagate_on_container_swap = std::true_type;
+                using is_always_equal = std::true_type;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, layout>;
+                    using other = device_allocator<U, memory_layout>;
                 };
 
                 device_allocator() noexcept = default;
                 device_allocator(const device_allocator& other) noexcept = default;
 
-                template <class U, memory_layout uml>
+                template <class U, ddrf::memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;
@@ -75,7 +72,8 @@ namespace ddrf
 
                 auto fill(pointer p, int value, size_type n) -> void
                 {
-                    auto err = cudaMemset(reinterpret_cast<void*>(p), value, n);
+                    constexpr auto size = sizeof(T);
+                    auto err = cudaMemset(p, value, n * size);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -85,8 +83,8 @@ namespace ddrf
         class device_allocator<T, memory_layout::pointer_2D>
         {
             public:
-                static constexpr auto layout = memory_layout::pointer_2D;
-                static constexpr auto location = memory_location::device;
+                static constexpr auto memory_layout = memory_layout::pointer_2D;
+                static constexpr auto memory_location = memory_location::device;
                 static constexpr auto alloc_needs_pitch = true;
 
                 using value_type = T;
@@ -94,20 +92,24 @@ namespace ddrf
                 using const_pointer = const pointer;
                 using size_type = std::size_t;
                 using difference_type = std::ptrdiff_t;
+                using propagate_on_container_copy_assignment = std::true_type;
+                using propagate_on_container_move_assignment = std::true_type;
+                using propagate_on_container_swap = std::true_type;
+                using is_always_equal = std::true_type;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, layout>;
+                    using other = device_allocator<U, memory_layout>;
                 };
 
                 device_allocator() noexcept = default;
                 device_allocator(const device_allocator& other) noexcept = default;
 
-                template <class U, memory_layout uml>
+                template <class U, ddrf::memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;
@@ -123,14 +125,15 @@ namespace ddrf
 
                 auto deallocate(pointer p, size_type = 0, size_type = 0) noexcept -> void
                 {
-                    auto err = cudaFree(reinterpret_cast<void*>(p.ptr));
+                    auto err = cudaFree(reinterpret_cast<void*>(p.ptr()));
                     if(err != cudaSuccess)
                         std::exit(err);
                 }
 
                 auto fill(pointer p, int value, size_type x, size_type y) -> void
                 {
-                    auto err = cudaMemset2D(reinterpret_cast<void*>(p.ptr), p.pitch, value, x * sizeof(value_type), y);
+                    constexpr auto size = sizeof(T);
+                    auto err = cudaMemset2D(p.ptr(), p.pitch(), value, x * size, y);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -140,8 +143,8 @@ namespace ddrf
         class device_allocator<T, memory_layout::pointer_3D>
         {
             public:
-                static constexpr auto layout = memory_layout::pointer_3D;
-                static constexpr auto location = location::device;
+                static constexpr auto memory_layout = memory_layout::pointer_3D;
+                static constexpr auto memory_location = memory_location::device;
                 static constexpr auto alloc_needs_pitch = true;
 
                 using value_type = T;
@@ -149,20 +152,24 @@ namespace ddrf
                 using const_pointer = const pointer;
                 using size_type = std::size_t;
                 using difference_type = std::ptrdiff_t;
+                using propagate_on_container_copy_assignment = std::true_type;
+                using propagate_on_container_move_assignment = std::true_type;
+                using propagate_on_container_swap = std::true_type;
+                using is_always_equal = std::true_type;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, layout>;
+                    using other = device_allocator<U, memory_layout>;
                 };
 
                 device_allocator() noexcept = default;
                 device_allocator(const device_allocator& other) noexcept = default;
 
-                template <class U, memory_layout uml>
+                template <class U, ddrf::memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;
@@ -178,15 +185,17 @@ namespace ddrf
 
                 auto deallocate(pointer p, size_type = 0, size_type = 0, size_type = 0) noexcept -> void
                 {
-                    auto err = cudaFree(reinterpret_cast<void*>(p.ptr));
+                    auto err = cudaFree(reinterpret_cast<void*>(p.ptr()));
                     if(err != cudaSuccess)
                         std::exit(err);
                 }
 
                 auto fill(pointer p, int value, size_type x, size_type y, size_type z) -> void
                 {
-                    auto extent = make_cudaExtent(x * sizeof(value_type), y, z);
-                    auto pitched_ptr = make_cudaPitchedPtr(reinterpret_cast<void*>(p.ptr), p.pitch, x, y);
+                    constexpr auto size = sizeof(T);
+                    auto extent = make_cudaExtent(x * size, y, z);
+                    auto pitched_ptr = make_cudaPitchedPtr(p.ptr(), p.pitch(), x * size, y);
+
                     auto err = cudaMemset3D(pitched_ptr, value, extent);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
