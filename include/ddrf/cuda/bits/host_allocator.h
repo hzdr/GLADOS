@@ -11,6 +11,7 @@
 #include <ddrf/bits/memory_layout.h>
 #include <ddrf/bits/memory_location.h>
 #include <ddrf/cuda/exception.h>
+#include <ddrf/cuda/bits/unique_ptr.h>
 
 namespace ddrf
 {
@@ -36,6 +37,9 @@ namespace ddrf
                 using propagate_on_container_move_assignment = std::true_type;
                 using propagate_on_container_swap = std::true_type;
                 using is_always_equal = std::true_type;
+
+                template <class Deleter>
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, true>;
 
                 template <class U>
                 struct rebind
@@ -93,6 +97,9 @@ namespace ddrf
                 using propagate_on_container_swap = std::true_type;
                 using is_always_equal = std::true_type;
 
+                template <class Deleter>
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, true>;
+
                 template <class U>
                 struct rebind
                 {
@@ -148,6 +155,9 @@ namespace ddrf
                 using propagate_on_container_move_assignment = std::true_type;
                 using propagate_on_container_swap = std::true_type;
                 using is_always_equal = std::true_type;
+
+                template <class Deleter>
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, true>;
 
                 template <class U>
                 struct rebind

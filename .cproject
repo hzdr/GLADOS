@@ -23,11 +23,11 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.so.debug.1620646763" name="Debug" parent="com.nvidia.cuda.ide.seven_five.configuration.so.debug">
+				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.so.debug.1620646763" name="Debug" parent="com.nvidia.cuda.ide.seven_five.configuration.so.debug">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.so.debug.1620646763." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.tools.toolchain.seven_five.so.debug.803569857" name="CUDA Toolkit 7.5" superClass="com.nvidia.cuda.tools.toolchain.seven_five.so.debug">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.1235662868" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
-							<builder buildPath="${workspace_loc:/ddrf}/Debug" id="com.nvidia.cuda.ide.builder.959267286" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CUDA Toolkit 8.0 Builder" superClass="com.nvidia.cuda.ide.builder"/>
+							<builder buildPath="${workspace_loc:/ddrf}/Debug" id="com.nvidia.cuda.ide.builder.959267286" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CUDA Toolkit 7.5 Builder" superClass="com.nvidia.cuda.ide.builder"/>
 							<tool id="nvcc.compiler.base.1296745423" name="NVCC Compiler" superClass="nvcc.compiler.base">
 								<option id="nvcc.compiler.deviceDebug.1381191268" name="Generate device debug information (-G)" superClass="nvcc.compiler.deviceDebug" value="true" valueType="boolean"/>
 								<option id="nvcc.compiler.option.level.704225910" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level" value="true" valueType="boolean"/>
@@ -42,13 +42,8 @@
 								<inputType id="nvcc.compiler.input.c.1788926358" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.94794594" name="NVCC Linker" superClass="nvcc.linker.base">
-								<option defaultValue="true" id="nvcc.linker.option.shared.1260678868" name="Shared (-shared)" superClass="nvcc.linker.option.shared" valueType="boolean"/>
-								<option id="nvcc.linker.option.libs.252739855" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
-									<listOptionValue builtIn="false" value="boost_system"/>
-									<listOptionValue builtIn="false" value="boost_filesystem"/>
-									<listOptionValue builtIn="false" value="boost_log"/>
-									<listOptionValue builtIn="false" value="boost_date_time"/>
-								</option>
+								<option defaultValue="true" id="nvcc.linker.option.shared.1260678868" name="Shared (-shared)" superClass="nvcc.linker.option.shared" value="false" valueType="boolean"/>
+								<option id="nvcc.linker.option.libs.252739855" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs"/>
 								<option id="nvcc.linker.option.cudart.1064430505" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
 								<inputType id="nvcc.linker.input.170576721" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -65,23 +60,6 @@
 			</storageModule>
 			<storageModule moduleId="com.nvidia.cuda.ide.build.project.ICudaProjectConfiguration">
 				<executable devicelink="true">
-					<sass major="2" minor="0"/>
-					<sass major="2" minor="1"/>
-					<sass major="3" minor="0"/>
-					<sass major="3" minor="2"/>
-					<sass major="3" minor="5"/>
-					<sass major="3" minor="7"/>
-					<sass major="5" minor="0"/>
-					<sass major="5" minor="2"/>
-					<sass major="5" minor="3"/>
-					<ptx major="2" minor="0"/>
-					<ptx major="3" minor="0"/>
-					<ptx major="3" minor="2"/>
-					<ptx major="3" minor="5"/>
-					<ptx major="3" minor="7"/>
-					<ptx major="5" minor="0"/>
-					<ptx major="5" minor="2"/>
-					<ptx major="5" minor="3"/>
 				</executable>
 				<editor-arch major="2" minor="0"/>
 			</storageModule>
@@ -109,11 +87,11 @@
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.so.release.1933768636" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.so.release">
+				<configuration artifactExtension="so" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="" id="com.nvidia.cuda.ide.seven_five.configuration.so.release.1933768636" name="Release" parent="com.nvidia.cuda.ide.seven_five.configuration.so.release">
 					<folderInfo id="com.nvidia.cuda.ide.seven_five.configuration.so.release.1933768636." name="/" resourcePath="">
 						<toolChain id="com.nvidia.cuda.ide.toolchain.seven_five.so.release.1141818838" name="CUDA Toolkit 7.5" superClass="com.nvidia.cuda.ide.toolchain.seven_five.so.release">
 							<targetPlatform archList="all" binaryParser="com.nvidia.cuda.ide.elf;com.nvidia.cuda.ide.macho;com.nvidia.cuda.ide.cubin" id="com.nvidia.cuda.ide.targetPlatform.1739191393" isAbstract="false" name="Debug Platform" osList="linux,macosx" superClass="com.nvidia.cuda.ide.targetPlatform"/>
-							<builder buildPath="${workspace_loc:/ddrf}/Release" id="com.nvidia.cuda.ide.builder.919917548" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CUDA Toolkit 8.0 Builder" superClass="com.nvidia.cuda.ide.builder"/>
+							<builder buildPath="${workspace_loc:/ddrf}/Release" id="com.nvidia.cuda.ide.builder.919917548" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CUDA Toolkit 7.5 Builder" superClass="com.nvidia.cuda.ide.builder"/>
 							<tool id="nvcc.compiler.base.195825421" name="NVCC Compiler" superClass="nvcc.compiler.base">
 								<option id="nvcc.compiler.deviceDebug.184418303" name="Generate device debug information (-G)" superClass="nvcc.compiler.deviceDebug"/>
 								<option id="nvcc.compiler.option.level.1056003451" name="Generate host debug information (-g)" superClass="nvcc.compiler.option.level"/>
@@ -128,13 +106,8 @@
 								<inputType id="nvcc.compiler.input.c.1589310570" superClass="nvcc.compiler.input.c"/>
 							</tool>
 							<tool id="nvcc.linker.base.1989934153" name="NVCC Linker" superClass="nvcc.linker.base">
-								<option defaultValue="true" id="nvcc.linker.option.shared.667338294" name="Shared (-shared)" superClass="nvcc.linker.option.shared" valueType="boolean"/>
-								<option id="nvcc.linker.option.libs.1907801576" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs">
-									<listOptionValue builtIn="false" value="boost_system"/>
-									<listOptionValue builtIn="false" value="boost_filesystem"/>
-									<listOptionValue builtIn="false" value="boost_log"/>
-									<listOptionValue builtIn="false" value="boost_date_time"/>
-								</option>
+								<option defaultValue="true" id="nvcc.linker.option.shared.667338294" name="Shared (-shared)" superClass="nvcc.linker.option.shared" value="false" valueType="boolean"/>
+								<option id="nvcc.linker.option.libs.1907801576" name="Libraries (-l)" superClass="nvcc.linker.option.libs" valueType="libs"/>
 								<option id="nvcc.linker.option.cudart.956510757" name="CUDA Runtime Library:" superClass="nvcc.linker.option.cudart" value="nvcc.linker.option.cudart.shared" valueType="enumerated"/>
 								<inputType id="nvcc.linker.input.1151982940" superClass="nvcc.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -151,23 +124,6 @@
 			</storageModule>
 			<storageModule moduleId="com.nvidia.cuda.ide.build.project.ICudaProjectConfiguration">
 				<executable devicelink="true">
-					<sass major="2" minor="0"/>
-					<sass major="2" minor="1"/>
-					<sass major="3" minor="0"/>
-					<sass major="3" minor="2"/>
-					<sass major="3" minor="5"/>
-					<sass major="3" minor="7"/>
-					<sass major="5" minor="0"/>
-					<sass major="5" minor="2"/>
-					<sass major="5" minor="3"/>
-					<ptx major="2" minor="0"/>
-					<ptx major="3" minor="0"/>
-					<ptx major="3" minor="2"/>
-					<ptx major="3" minor="5"/>
-					<ptx major="3" minor="7"/>
-					<ptx major="5" minor="0"/>
-					<ptx major="5" minor="2"/>
-					<ptx major="5" minor="3"/>
 				</executable>
 				<editor-arch major="2" minor="0"/>
 			</storageModule>

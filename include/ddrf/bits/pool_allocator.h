@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <forward_list>
+#include <functional>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -32,6 +33,7 @@ namespace ddrf
             using propagate_on_container_move_assignment = std::true_type;
             using propagate_on_container_swap = std::true_type;
             using is_always_equal = std::true_type;
+            using smart_pointer = typename InternalAlloc::template smart_pointer<std::function<void(T*)>>;
 
             template <class U>
             struct rebind
@@ -81,6 +83,11 @@ namespace ddrf
 
                 fill(ret, 0);
                 return ret;
+            }
+
+            auto allocate_smart(size_type n) -> smart_pointer
+            {
+                return smart_pointer{allocate(n), [this](T* ptr){ this->deallocate(ptr); }};
             }
 
             auto deallocate(pointer p, size_type = 0) noexcept -> void
@@ -147,6 +154,7 @@ namespace ddrf
             using propagate_on_container_move_assignment = std::true_type;
             using propagate_on_container_swap = std::true_type;
             using is_always_equal = std::true_type;
+            using smart_pointer = typename InternalAlloc::template smart_pointer<std::function<void(T*)>>;
 
             template <class U>
             struct rebind
@@ -191,6 +199,11 @@ namespace ddrf
 
                 lock_.clear(std::memory_order_release);
                 return ret;
+            }
+
+            auto allocate_smart(size_type x, size_type y) -> smart_pointer
+            {
+                return smart_pointer{allocate(x, y), [this](T* ptr){ this->deallocate(ptr); }};
             }
 
             auto deallocate(pointer p, size_type = 0, size_type = 0) noexcept -> void
@@ -262,6 +275,7 @@ namespace ddrf
             using const_pointer = typename InternalAlloc::const_pointer;
             using size_type = typename InternalAlloc::size_type;
             using difference_type = typename InternalAlloc::difference_type;
+            using smart_pointer = typename InternalAlloc::template smart_pointer<std::function<void(T*)>>;
 
             template <class U>
             struct rebind
@@ -317,6 +331,11 @@ namespace ddrf
 
                 fill(ret, 0);
                 return ret;
+            }
+
+            auto allocate_smart(size_type x, size_type y, size_type z) -> smart_pointer
+            {
+                return smart_pointer{allocate(x, y, z), [this](T* ptr){ this->deallocate(ptr); }};
             }
 
             auto deallocate(pointer p, size_type = 0, size_type = 0, size_type = 0) noexcept -> void
