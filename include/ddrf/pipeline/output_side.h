@@ -16,7 +16,7 @@ namespace ddrf
             public:
                 template <class T>
                 auto output(T&& t)
-                -> typename std::enable_if<std::is_same<T, Output>::value, void>::type
+                -> typename std::enable_if<std::is_same<T, OutputT>::value, void>::type
                 {
                     if(next_ == nullptr)
                         return;
@@ -24,7 +24,7 @@ namespace ddrf
                     next_->input(std::forward<T>(t));
                 }
 
-                auto attach(const input_side<OutputT>* next) noexcept
+                auto attach(input_side<OutputT>* next) noexcept
                 -> void
                 {
                     next_ = next;

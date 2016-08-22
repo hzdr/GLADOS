@@ -25,8 +25,8 @@ namespace ddrf
         class device_allocator<T, memory_layout::pointer_1D>
         {
             public:
-                static constexpr auto memory_layout = memory_layout::pointer_1D;
-                static constexpr auto memory_location = memory_location::device;
+                static constexpr auto mem_layout = memory_layout::pointer_1D;
+                static constexpr auto mem_location = memory_location::device;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -40,21 +40,21 @@ namespace ddrf
                 using is_always_equal = std::true_type;
 
                 template <class Deleter>
-                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, false>;
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, mem_location, false>;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, memory_layout>;
+                    using other = device_allocator<U, mem_layout>;
                 };
 
                 device_allocator() noexcept = default;
                 device_allocator(const device_allocator& other) noexcept = default;
 
-                template <class U, ddrf::memory_layout uml>
+                template <class U, memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;
@@ -87,8 +87,8 @@ namespace ddrf
         class device_allocator<T, memory_layout::pointer_2D>
         {
             public:
-                static constexpr auto memory_layout = memory_layout::pointer_2D;
-                static constexpr auto memory_location = memory_location::device;
+                static constexpr auto mem_layout = memory_layout::pointer_2D;
+                static constexpr auto mem_location = memory_location::device;
                 static constexpr auto alloc_needs_pitch = true;
 
                 using value_type = T;
@@ -102,28 +102,28 @@ namespace ddrf
                 using is_always_equal = std::true_type;
 
                 template <class Deleter>
-                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, false>;
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, mem_location, false>;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, memory_layout>;
+                    using other = device_allocator<U, mem_layout>;
                 };
 
                 device_allocator() noexcept = default;
                 device_allocator(const device_allocator& other) noexcept = default;
 
-                template <class U, ddrf::memory_layout uml>
+                template <class U, memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;
 
                 auto allocate(size_type x, size_type y) -> pointer
                 {
-                    auto ptr = static_cast<pointer>(nullptr);
+                    auto ptr = static_cast<value_type*>(nullptr);
                     auto pitch = size_type{};
                     if(cudaMallocPitch(reinterpret_cast<void**>(&ptr), &pitch, x * sizeof(value_type), y) == cudaErrorMemoryAllocation)
                         throw bad_alloc{};
@@ -150,8 +150,8 @@ namespace ddrf
         class device_allocator<T, memory_layout::pointer_3D>
         {
             public:
-                static constexpr auto memory_layout = memory_layout::pointer_3D;
-                static constexpr auto memory_location = memory_location::device;
+                static constexpr auto mem_layout = memory_layout::pointer_3D;
+                static constexpr auto mem_location = memory_location::device;
                 static constexpr auto alloc_needs_pitch = true;
 
                 using value_type = T;
@@ -165,21 +165,21 @@ namespace ddrf
                 using is_always_equal = std::true_type;
 
                 template <class Deleter>
-                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, false>;
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, mem_location, false>;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = device_allocator<U, memory_layout>;
+                    using other = device_allocator<U, mem_layout>;
                 };
 
                 device_allocator() noexcept = default;
                 device_allocator(const device_allocator& other) noexcept = default;
 
-                template <class U, ddrf::memory_layout uml>
+                template <class U, memory_layout uml>
                 device_allocator(const device_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~device_allocator() = default;

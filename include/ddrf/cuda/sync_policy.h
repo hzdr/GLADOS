@@ -19,7 +19,7 @@ namespace ddrf
         namespace detail
         {
             template <class D, class S>
-            auto create_3D_parms(D&& d, const S&& s, std::size_t x, std::size_t y, std::size_t z,
+            auto create_3D_parms(const D& d, const S& s, std::size_t x, std::size_t y, std::size_t z,
                     std::size_t d_off_x, std::size_t d_off_y, std::size_t d_off_z,
                     std::size_t s_off_x, std::size_t s_off_y, std::size_t s_off_z) -> cudaMemcpy3DParms
                     {
@@ -40,9 +40,9 @@ namespace ddrf
                         auto d_pos_x = to_uchar_pos(d_off_x, d_elem_size);
                         auto d_pos_y = to_uchar_pos(d_off_y, d_elem_size);
                         auto d_pos_z = to_uchar_pos(d_off_z, d_elem_size);
-                        auto s_pos_x = to_uchar_pos(s_pos_x, s_elem_size);
-                        auto s_pos_y = to_uchar_pos(s_pos_y, s_elem_size);
-                        auto s_pos_z = to_uchar_pos(s_pos_z, s_elem_size);
+                        auto s_pos_x = to_uchar_pos(s_off_x, s_elem_size);
+                        auto s_pos_y = to_uchar_pos(s_off_y, s_elem_size);
+                        auto s_pos_z = to_uchar_pos(s_off_z, s_elem_size);
 
                         auto d_pos = make_cudaPos(d_pos_x, d_pos_y, d_pos_z);
                         auto s_pos = make_cudaPos(s_pos_x, s_pos_y, s_pos_z);
@@ -63,7 +63,7 @@ namespace ddrf
         {
             public:
                 template <class D, class S>
-                auto copy(D&& d, const S&& s, std::size_t x) const -> void
+                auto copy(D& d, const S& s, std::size_t x) const -> void
                 {
                     static_assert(!D::pitched_memory, "Destination memory must not be pitched for a 1D copy.");
                     static_assert(!S::pitched_memory, "Source memory must not be pitched for a 1D copy.");
@@ -76,7 +76,7 @@ namespace ddrf
                 }
 
                 template <class D, class S>
-                auto copy(D&&d, const S&& s, std::size_t x, std::size_t y) const -> void
+                auto copy(D& d, const S& s, std::size_t x, std::size_t y) const -> void
                 {
                     static_assert((D::memory_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 2D copy.");
                     static_assert((S::memory_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 2D copy.");
@@ -89,7 +89,7 @@ namespace ddrf
                 }
 
                 template <class D, class S>
-                auto copy(D&& d, const S&& s, std::size_t x, std::size_t y, std::size_t z,
+                auto copy(D& d, const S& s, std::size_t x, std::size_t y, std::size_t z,
                             std::size_t d_off_x = 0, std::size_t d_off_y = 0, std::size_t d_off_z = 0,
                             std::size_t s_off_x = 0, std::size_t s_off_y = 0, std::size_t s_off_z = 0) const
                 -> void
@@ -97,14 +97,14 @@ namespace ddrf
                     static_assert((D::memory_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 3D copy.");
                     static_assert((S::memory_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 3D copy.");
 
-                    auto parms = detail::create_3D_parms(std::forward<D>(d), std::forward<const S>(s), x, y, z, d_off_x, d_off_y, d_off_z, s_off_x, s_off_y, s_off_z);
+                    auto parms = detail::create_3D_parms(d, s, x, y, z, d_off_x, d_off_y, d_off_z, s_off_x, s_off_y, s_off_z);
                     auto err = cudaMemcpy3D(&parms);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x) const
+                auto fill(P& p, int value, std::size_t x) const
                 -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
                 {
                     static_assert(!P::pitched_memory, "The memory on the device must not be pitched for a 1D fill operation.");
@@ -116,14 +116,14 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x) const
+                auto fill(P& p, int value, std::size_t x) const
                 -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
                 {
                     std::fill_n(p.get(), x, value);
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x, std::size_t y) const
+                auto fill(P& p, int value, std::size_t x, std::size_t y) const
                 -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 2D fill operation.");
@@ -135,14 +135,14 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x, std::size_t y) const
+                auto fill(P& p, int value, std::size_t x, std::size_t y) const
                 -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
                 {
                     std::fill_n(p.get(), x * y, value);
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x, std::size_t y, std::size_t z) const
+                auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
                 -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 3D fill operation.");
@@ -157,8 +157,8 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x, std::size_t y, std::size_t z) const
-                -> std::enable_if<P::memory_location == memory_location::host, void>::type
+                auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
+                -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
                 {
                     std::fill_n(p.get(), x * y * z, value);
                 }
@@ -168,7 +168,7 @@ namespace ddrf
         {
             public:
                 template <class D, class S>
-                auto copy(D&& d, const S&& s, std::size_t x) const -> void
+                auto copy(D& d, const S& s, std::size_t x) const -> void
                 {
                     static_assert(!D::pitched_memory, "Destination memory must not be pitched for a 1D copy");
                     static_assert(!S::pitched_memory, "Source memory must not be pitched for a 1D copy");
@@ -197,7 +197,7 @@ namespace ddrf
                 }
 
                 template <class D, class S>
-                auto copy(D&& d, const S&& s, std::size_t x, std::size_t y) const -> void
+                auto copy(D& d, const S& s, std::size_t x, std::size_t y) const -> void
                 {
                     static_assert((D::memory_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 2D copy.");
                     static_assert((S::memory_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 2D copy.");
@@ -211,7 +211,7 @@ namespace ddrf
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
 
-                    err = cudaMemcpyAsync(d.get(), d.pitch(), s.get(), s.pitch(), x * size, y, detail::memcpy_direction<D::memory_location, S::memory_location>::value, stream);
+                    err = cudaMemcpy2DAsync(d.get(), d.pitch(), s.get(), s.pitch(), x * size, y, detail::memcpy_direction<D::memory_location, S::memory_location>::value, stream);
                     if(err != cudaSuccess)
                     {
                         auto err2 = cudaStreamDestroy(stream);
@@ -226,9 +226,9 @@ namespace ddrf
                 }
 
                 template <class D, class S>
-                auto copy(D&& d, const S&& s, std::size_t x, std::size_t y, std::size_t z,
+                auto copy(D& d, const S& s, std::size_t x, std::size_t y, std::size_t z,
                         std::size_t d_off_x = 0, std::size_t d_off_y = 0, std::size_t d_off_z = 0,
-                        std::size_t s_off_x = 0, std::size_t s_off_y = 0, std::size_t s_off_z = 0) const
+                        std::size_t s_off_x = 0, std::size_t s_off_y = 0, std::size_t s_off_z = 0) const -> void
                 {
                     static_assert((D::memory_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 3D copy.");
                     static_assert((S::memory_location == memory_location::host) || S::pitched_memory, "Source memory on the host must be pitched for a 3D copy.");
@@ -257,7 +257,7 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x) const
+                auto fill(P& p, int value, std::size_t x) const
                 -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
                 {
                     static_assert(!P::pitched_memory, "The memory on the device must not be pitched for a 1D fill operation.");
@@ -284,7 +284,7 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x) const
+                auto fill(P& p, int value, std::size_t x) const
                 -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
                 {
                     // in an ideal world we wouldn't spawn threads manually but use std::async instead.
@@ -295,7 +295,7 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x, std::size_t y) const
+                auto fill(P& p, int value, std::size_t x, std::size_t y) const
                 -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 2D fill operation.");
@@ -305,7 +305,7 @@ namespace ddrf
                     auto stream = cudaStream_t{};
                     auto err = cudaStreamCreate(&stream);
                     if(err != cudaSuccess)
-                        throw invalid_argument{cudaGetErrorString(err)}
+                        throw invalid_argument{cudaGetErrorString(err)};
 
                     err = cudaMemset2DAsync(p.get(), p.pitch(), value, x * size, y, stream);
                     if(err != cudaSuccess)
@@ -322,7 +322,7 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x, std::size_t y) const
+                auto fill(P& p, int value, std::size_t x, std::size_t y) const
                 -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
                 {
                     auto f = [&]() { std::fill_n(p.get(), x * y, value); };
@@ -331,7 +331,7 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x, std::size_t y, std::size_t z) const
+                auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
                 -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 3D fill operation.");
@@ -360,8 +360,8 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P&& p, int value, std::size_t x, std::size_t y, std::size_t z) const
-                -> std::enable_if<P::memory_location == memory_location::host, void>::type
+                auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
+                -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
                 {
                     auto f = [&](){ std::fill_n(p.get(), x * y * z, value); };
                     auto&& t = std::thread{f};

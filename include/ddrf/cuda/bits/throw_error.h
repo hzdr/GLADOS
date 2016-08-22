@@ -13,7 +13,7 @@ namespace ddrf
     {
         namespace detail
         {
-            [[noreturn]] auto throw_error(cudaError_t err) -> void
+            inline auto throw_error(cudaError_t err) -> void
             {
                 switch(err)
                 {
@@ -94,6 +94,9 @@ namespace ddrf
 
                     case cudaErrorMemoryAllocation:
                         throw bad_alloc{};
+
+                    default:
+                        throw invalid_argument{"Unknown error type"};
                 }
             }
         }

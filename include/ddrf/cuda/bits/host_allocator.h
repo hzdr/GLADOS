@@ -24,8 +24,8 @@ namespace ddrf
         class host_allocator<T, memory_layout::pointer_1D>
         {
             public:
-                static constexpr auto memory_layout = memory_layout::pointer_1D;
-                static constexpr auto memory_location = memory_location::host;
+                static constexpr auto mem_layout = memory_layout::pointer_1D;
+                static constexpr auto mem_location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -39,21 +39,21 @@ namespace ddrf
                 using is_always_equal = std::true_type;
 
                 template <class Deleter>
-                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, true>;
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, mem_location, true>;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = host_allocator<U, memory_layout>;
+                    using other = host_allocator<U, mem_layout>;
                 };
 
                 host_allocator() noexcept = default;
                 host_allocator(const host_allocator& other) noexcept = default;
 
-                template <class U, ddrf::memory_layout uml>
+                template <class U, memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible host allocator");
                 }
 
                 ~host_allocator() = default;
@@ -83,8 +83,8 @@ namespace ddrf
         class host_allocator<T, memory_layout::pointer_2D>
         {
             public:
-                static constexpr auto memory_layout = memory_layout::pointer_2D;
-                static constexpr auto memory_location = memory_location::host;
+                static constexpr auto mem_layout = memory_layout::pointer_2D;
+                static constexpr auto mem_location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -98,21 +98,21 @@ namespace ddrf
                 using is_always_equal = std::true_type;
 
                 template <class Deleter>
-                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, true>;
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, mem_location, true>;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = host_allocator<U, layout>;
+                    using other = host_allocator<U, mem_layout>;
                 };
 
                 host_allocator() noexcept = default;
                 host_allocator(const host_allocator& other) noexcept = default;
 
-                template <class U, ddrf::memory_layout uml>
+                template <class U, memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible host allocator");
                 }
 
                 ~host_allocator() = default;
@@ -142,8 +142,8 @@ namespace ddrf
         class host_allocator<T, memory_layout::pointer_3D>
         {
             public:
-                static constexpr auto memory_layout = memory_layout::pointer_3D;
-                static constexpr auto memory_location = memory_location::host;
+                static constexpr auto mem_layout = memory_layout::pointer_3D;
+                static constexpr auto mem_location = memory_location::host;
                 static constexpr auto alloc_needs_pitch = false;
 
                 using value_type = T;
@@ -157,21 +157,21 @@ namespace ddrf
                 using is_always_equal = std::true_type;
 
                 template <class Deleter>
-                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, memory_location, true>;
+                using smart_pointer = unique_ptr<T, Deleter, alloc_needs_pitch, mem_location, true>;
 
                 template <class U>
                 struct rebind
                 {
-                    using other = host_allocator<U, layout>;
+                    using other = host_allocator<U, mem_layout>;
                 };
 
                 host_allocator() noexcept = default;
                 host_allocator(const host_allocator& other) noexcept = default;
 
-                template <class U, ddrf::memory_layout uml>
+                template <class U, memory_layout uml>
                 host_allocator(const host_allocator<U, uml>& other) noexcept
                 {
-                    static_assert(std::is_same<T, U>::value && memory_layout == uml, "Attempting to copy incompatible device allocator");
+                    static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible device allocator");
                 }
 
                 ~host_allocator() = default;

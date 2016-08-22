@@ -31,7 +31,7 @@ namespace ddrf
 
                 template <class... Args>
                 stage(size_type input_limit, Args&&... args)
-                : Implementation(std::forward<Args>(args)...)
+                : StageT(std::forward<Args>(args)...)
                 , input_side<input_type>(input_limit)
                 , output_side<output_type>()
                 {}
@@ -39,7 +39,7 @@ namespace ddrf
                 auto run() -> void
                 {
                     StageT::set_input_function(std::bind(&input_side<input_type>::take, this));
-                    StageT::set_output_function(std::bind(&output_side<output_type>::output, this, std::placeholders::_1));
+                    StageT::set_output_function(std::bind(&output_side<output_type>::template output<output_type>, this, std::placeholders::_1));
                     StageT::run();
                 }
         };

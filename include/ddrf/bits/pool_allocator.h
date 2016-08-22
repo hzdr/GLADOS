@@ -12,7 +12,7 @@
 
 namespace ddrf
 {
-    template <class T, memory_layout ml, class InternalAlloc, class = typename std::enable_if<(ml == InternalAlloc::layout)>::type>
+    template <class T, memory_layout ml, class InternalAlloc, class = typename std::enable_if<(ml == InternalAlloc::mem_layout)>::type>
     class pool_allocator {};
 
     /* 1D specialization */
@@ -20,8 +20,8 @@ namespace ddrf
     class pool_allocator<T, memory_layout::pointer_1D, InternalAlloc>
     {
         public:
-            static constexpr auto memory_layout = InternalAlloc::memory_layout;
-            static constexpr auto memory_location = InternalAlloc::memory_location;
+            static constexpr auto mem_layout = InternalAlloc::mem_layout;
+            static constexpr auto mem_location = InternalAlloc::mem_location;
             static constexpr auto alloc_needs_pitch = InternalAlloc::alloc_needs_pitch;
 
             using value_type = T;
@@ -38,23 +38,36 @@ namespace ddrf
             template <class U>
             struct rebind
             {
-                using other = pool_allocator<U, memory_layout, InternalAlloc>;
+                using other = pool_allocator<U, mem_layout, InternalAlloc>;
             };
 
         public:
             pool_allocator() noexcept = default;
-            pool_allocator(const pool_allocator& other) noexcept = default;
 
-            template <class U, ddrf::memory_layout uml>
-            pool_allocator(const pool_allocator& other) noexcept
+            pool_allocator(pool_allocator&& other) noexcept
+            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}, n_{other.n_}
             {
-                static_assert(std::is_same<T, U>::value && (memory_layout == uml), "Attempting to copy incompatible pool allocator");
+                if(other.lock_.test_and_set())
+                    lock_.test_and_set();
+                else
+                    lock_.clear();
             }
 
-            auto operator=(const pool_allocator& other) noexcept -> pool_allocator&
+            auto operator=(pool_allocator&& other) noexcept -> pool_allocator&
             {
+                alloc_ = std::move(other.alloc_);
+                list_ = std::move(other.list_);
+                n_ = std::move(other.n_);
+                if(other.lock_.test_and_set())
+                    lock_.test_and_set();
+                else
+                    lock_.clear();
+
                 return *this;
             }
+
+            pool_allocator(const pool_allocator& other) noexcept = delete;
+            auto operator=(const pool_allocator& other) noexcept -> pool_allocator& = delete;
 
             ~pool_allocator()
             {
@@ -118,31 +131,19 @@ namespace ddrf
             }
 
         private:
-            static InternalAlloc alloc_;
-            static std::atomic_flag lock_;
-            static std::forward_list<pointer> list_;
-            static size_type n_;
+            InternalAlloc alloc_;
+            std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
+            std::forward_list<pointer> list_;
+            size_type n_;
     };
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_1D, InternalAlloc>::alloc_ = InternalAlloc();
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_1D, InternalAlloc>::lock_ = ATOMIC_FLAG_INIT;
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_1D, InternalAlloc>::list_ = std::forward_list<pointer>{100u, nullptr};
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_1D, InternalAlloc>::n_ = size_type{0};
 
     /* 2D specialization */
     template <class T, class InternalAlloc>
     class pool_allocator<T, memory_layout::pointer_2D, InternalAlloc>
     {
         public:
-            static constexpr auto layout = memory_layout::pointer_2D;
-            static constexpr auto location = InternalAlloc::location;
+            static constexpr auto mem_layout = InternalAlloc::mem_layout;
+            static constexpr auto mem_location = InternalAlloc::mem_location;
             static constexpr auto alloc_needs_pitch = InternalAlloc::alloc_needs_pitch;
 
             using value_type = T;
@@ -159,23 +160,37 @@ namespace ddrf
             template <class U>
             struct rebind
             {
-                using other = pool_allocator<U, layout, InternalAlloc>;
+                using other = pool_allocator<U, mem_layout, InternalAlloc>;
             };
 
         public:
-            pool_allocator() noexcept = default;
-            pool_allocator(const pool_allocator& other) noexcept = default;
+            pool_allocator() = default;
 
-            template <class U, memory_layout uml>
-            pool_allocator(const pool_allocator& other) noexcept
+            pool_allocator(pool_allocator&& other) noexcept
+            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}, x_{other.x_}, y_{other.y_}
             {
-                static_assert(std::is_same<T, U>::value && (layout == uml), "Attempting to copy incompatible pool allocator");
+                if(other.lock_.test_and_set())
+                    lock_.test_and_set();
+                else
+                    lock_.clear();
             }
 
-            auto operator=(const pool_allocator& other) noexcept -> pool_allocator&
+            auto operator=(pool_allocator&& other) noexcept -> pool_allocator&
             {
+                alloc_ = std::move(other.alloc_);
+                list_ = std::move(other.list_);
+                x_ = other.x_;
+                y_ = other.y_;
+                if(other.lock_.test_and_set())
+                    lock_.test_and_set();
+                else
+                    lock_.clear();
+
                 return *this;
             }
+
+            pool_allocator(const pool_allocator& other) noexcept = delete;
+            auto operator=(const pool_allocator& other) noexcept -> pool_allocator& = delete;
 
             ~pool_allocator()
             {
@@ -203,7 +218,8 @@ namespace ddrf
 
             auto allocate_smart(size_type x, size_type y) -> smart_pointer
             {
-                return smart_pointer{allocate(x, y), [this](T* ptr){ this->deallocate(ptr); }};
+                auto p = allocate(x, y);
+                return smart_pointer{p, [this, p](T* ptr){ this->deallocate(p); }};
             }
 
             auto deallocate(pointer p, size_type = 0, size_type = 0) noexcept -> void
@@ -235,35 +251,20 @@ namespace ddrf
             }
 
         private:
-            static InternalAlloc alloc_;
-            static std::atomic_flag lock_;
-            static std::forward_list<pointer> list_;
-            static size_type x_;
-            static size_type y_;
+            InternalAlloc alloc_;
+            std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
+            std::forward_list<pointer> list_;
+            size_type x_;
+            size_type y_;
     };
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_2D, InternalAlloc>::alloc_ = InternalAlloc();
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_2D, InternalAlloc>::lock_ = ATOMIC_FLAG_INIT;
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_2D, InternalAlloc>::list_ = std::forward_list<pointer>{100u, nullptr};
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_2D, InternalAlloc>::x_ = size_type{0};
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_2D, InternalAlloc>::y_ = size_type{0};
 
     /* 3D specialization */
     template <class T, class InternalAlloc>
     class pool_allocator<T, memory_layout::pointer_3D, InternalAlloc>
     {
         public:
-            static constexpr auto layout = memory_layout::pointer_3D;
-            static constexpr auto location = InternalAlloc::location;
+            static constexpr auto mem_layout = InternalAlloc::mem_layout;
+            static constexpr auto mem_location = InternalAlloc::mem_location;
             static constexpr auto alloc_needs_pitch = InternalAlloc::alloc_needs_pitch;
             using propagate_on_container_copy_assignment = std::true_type;
             using propagate_on_container_move_assignment = std::true_type;
@@ -280,25 +281,38 @@ namespace ddrf
             template <class U>
             struct rebind
             {
-                using other = pool_allocator<U, layout, InternalAlloc>;
+                using other = pool_allocator<U, mem_layout, InternalAlloc>;
             };
 
         public:
-            pool_allocator() noexcept = default;
-            pool_allocator(const pool_allocator& other) noexcept
+            pool_allocator() = default;
+
+            pool_allocator(pool_allocator&& other) noexcept
+            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}, x_{other.x_}, y_{other.y_}, z_{other.z_}
             {
+                if(other.lock_.test_and_set())
+                    lock_.test_and_set();
+                else
+                    lock_.clear();
             }
 
-            template <class U, memory_layout uml>
-            pool_allocator(const pool_allocator& other) noexcept
+            auto operator=(pool_allocator&& other) noexcept -> pool_allocator&
             {
-                static_assert(std::is_same<T, U>::value && (layout == uml), "Attempting to copy incompatible pool allocator");
-            }
+                alloc_ = std::move(other.alloc_);
+                list_ = std::move(other.list_);
+                x_ = other.x_;
+                y_ = other.y_;
+                z_ = other.z_;
+                if(other.lock_.test_and_set())
+                    lock_.test_and_set();
+                else
+                    lock_.clear();
 
-            auto operator=(const pool_allocator& other) noexcept -> pool_allocator&
-            {
                 return *this;
             }
+
+            pool_allocator(const pool_allocator& other) noexcept = delete;
+            auto operator=(const pool_allocator& other) noexcept -> pool_allocator& = delete;
 
             ~pool_allocator()
             {
@@ -335,7 +349,8 @@ namespace ddrf
 
             auto allocate_smart(size_type x, size_type y, size_type z) -> smart_pointer
             {
-                return smart_pointer{allocate(x, y, z), [this](T* ptr){ this->deallocate(ptr); }};
+                auto p = allocate(x, y, z);
+                return smart_pointer{p, [this, p](T* ptr){ this->deallocate(p); }};
             }
 
             auto deallocate(pointer p, size_type = 0, size_type = 0, size_type = 0) noexcept -> void
@@ -368,32 +383,14 @@ namespace ddrf
             }
 
         private:
-            static InternalAlloc alloc_;
-            static std::atomic_flag lock_;
-            static std::forward_list<pointer> list_;
-            static size_type x_;
-            static size_type y_;
-            static size_type z_;
+            InternalAlloc alloc_;
+            std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
+            std::forward_list<pointer> list_;
+            size_type x_;
+            size_type y_;
+            size_type z_;
 
     };
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_3D, InternalAlloc>::alloc_ = InternalAlloc();
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_3D, InternalAlloc>::lock_ = ATOMIC_FLAG_INIT;
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_3D, InternalAlloc>::list_ = std::forward_list<typename pool_allocator<T, memory_layout::pointer_3D, InternalAlloc>::pointer>{100u, nullptr};
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_3D, InternalAlloc>::x_ = 0;
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_3D, InternalAlloc>::y_ = 0;
-
-    template <class T, class InternalAlloc>
-    auto pool_allocator<T, memory_layout::pointer_3D, InternalAlloc>::z_ = 0;
 }
 
 

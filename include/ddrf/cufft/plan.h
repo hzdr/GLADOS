@@ -12,6 +12,23 @@ namespace ddrf
 {
     namespace cufft
     {
+        namespace detail
+        {
+            template <class I, class O> struct type_chooser {};
+            template <> struct type_chooser<cufftReal, cufftComplex> { static constexpr auto value = CUFFT_R2C; };
+            template <> struct type_chooser<cufftComplex, cufftReal> { static constexpr auto value = CUFFT_C2R; };
+            template <> struct type_chooser<cufftComplex, cufftComplex> { static constexpr auto value = CUFFT_C2C; };
+            template <> struct type_chooser<cufftDoubleReal, cufftDoubleComplex> { static constexpr auto value = CUFFT_D2Z; };
+            template <> struct type_chooser<cufftDoubleComplex, cufftDoubleReal> { static constexpr auto value = CUFFT_Z2D; };
+            template <> struct type_chooser<cufftDoubleComplex, cufftDoubleComplex> { static constexpr auto value = CUFFT_Z2Z; };
+
+            template <class I> struct type_mapper {};
+            template <> struct type_mapper<cufftReal> { using type = cufftComplex; };
+            template <> struct type_mapper<cufftComplex> { using type = cufftReal; };
+            template <> struct type_mapper<cufftDoubleReal> { using type = cufftDoubleComplex; };
+            template <> struct type_mapper<cufftDoubleComplex> { using type = cufftDoubleReal; };
+        }
+
         template <cufftType type>
         class plan
         {
@@ -42,8 +59,8 @@ namespace ddrf
                 auto execute(I* idata, O* odata) -> void
                 {
                     static_assert(!std::is_same<I, O>::value, "Plan needs a direction for transformations between the same types.");
-                    static_assert(type_chooser<I, O>::value == transformation_type, "This plan can not be used for other types than originally specified.");
-                    static_assert(std::is_same<O, typename type_mapper<I>::type>::value, "Attempt to transform to an incompatible type.");
+                    static_assert(detail::type_chooser<I, O>::value == transformation_type, "This plan can not be used for other types than originally specified.");
+                    static_assert(std::is_same<O, typename detail::type_mapper<I>::type>::value, "Attempt to transform to an incompatible type.");
 
                     cufft_exec(idata, odata);
                 }
@@ -52,8 +69,8 @@ namespace ddrf
                 auto execute(I* idata, O* odata, int direction) -> void
                 {
                     static_assert(std::is_same<I, O>::value, "Transformations between different types are implicitly inverse");
-                    static_assert(type_chooser<I, O>::value == transformation_type, "This plan can not be used for other types than originally specified.");
-                    static_assert(std::is_same<O, typename type_mapper<I>::type>::value, "Attempt to transform to an incompatible type.");
+                    static_assert(detail::type_chooser<I, O>::value == transformation_type, "This plan can not be used for other types than originally specified.");
+                    static_assert(std::is_same<O, typename detail::type_mapper<I>::type>::value, "Attempt to transform to an incompatible type.");
 
                     cufft_exec(idata, odata, direction);
                 }
@@ -106,20 +123,6 @@ namespace ddrf
                 }
 
             private:
-                template <class I, class O> struct type_chooser {};
-                template <> struct type_chooser<cufftReal, cufftComplex> { static constexpr auto value = CUFFT_R2C; };
-                template <> struct type_chooser<cufftComplex, cufftReal> { static constexpr auto value = CUFFT_C2R; };
-                template <> struct type_chooser<cufftComplex, cufftComplex> { static constexpr auto value = CUFFT_C2C; };
-                template <> struct type_chooser<cufftDoubleReal, cufftDoubleComplex> { static constexpr auto value = CUFFT_D2Z; };
-                template <> struct type_chooser<cufftDoubleComplex, cufftDoubleReal> { static constexpr auto value = CUFFT_Z2D; };
-                template <> struct type_chooser<cufftDoubleComplex, cufftDoubleComplex> { static constexpr auto value = CUFFT_Z2Z; };
-
-                template <class I> struct type_mapper {};
-                template <> struct type_mapper<cufftReal> { using type = cufftComplex; };
-                template <> struct type_mapper<cufftComplex> { using type = cufftReal; };
-                template <> struct type_mapper<cufftDoubleReal> { using type = cufftDoubleComplex; };
-                template <> struct type_mapper<cufftDoubleComplex> { using type = cufftDoubleReal; };
-
                 bool valid_ = false;
                 cufftHandle handle_;
         };

@@ -16,7 +16,7 @@ namespace ddrf
             bad_alloc() noexcept = default;
             virtual ~bad_alloc() = default;
 
-            auto operator=(const bad_alloc&) noexcept -> bad_alloc& {}
+            auto operator=(const bad_alloc&) noexcept -> bad_alloc& { return *this; }
             auto what() const noexcept -> const char*
             {
                 return "Resource allocation failed inside the cuSPARSE library";

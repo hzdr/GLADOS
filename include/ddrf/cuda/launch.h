@@ -51,13 +51,13 @@ namespace ddrf
         template <typename... Args>
         auto launch(std::size_t input_width, std::size_t input_height, void(*kernel)(Args...), Args... args) -> void
         {
-            auto threads = detail::roundUp(static_cast<unsigned int>(input_width * input_height), 1024u);
+            auto threads = detail::round_up(static_cast<unsigned int>(input_width * input_height), 1024u);
             auto blocks = threads / 1024u;
 
             auto iwb = static_cast<unsigned int>(input_width) / blocks;
-            auto dim_x = ((iwb < 32u) && (iwb != 0u)) ? iwb : detail::roundUp(iwb, 32u);
+            auto dim_x = ((iwb < 32u) && (iwb != 0u)) ? iwb : detail::round_up(iwb, 32u);
             auto ihb = static_cast<unsigned int>(input_height) / blocks;
-            auto dim_y = ((ihb < 32u) && (ihb != 0u)) ? ihb : detail::roundUp(ihb, 32u);
+            auto dim_y = ((ihb < 32u) && (ihb != 0u)) ? ihb : detail::round_up(ihb, 32u);
             auto block_size = dim3{dim_x, dim_y};
             auto grid_size = dim3{static_cast<unsigned int>((input_width + block_size.x - 1u)/block_size.x),
                                     static_cast<unsigned int>((input_height + block_size.y - 1u)/block_size.y)};
@@ -71,15 +71,15 @@ namespace ddrf
         template <typename... Args>
         auto launch(std::size_t input_width, std::size_t input_height, std::size_t input_depth, void(*kernel)(Args...), Args... args) -> void
         {
-            auto threads = detail::roundUp(static_cast<unsigned int>(input_width * input_height * input_depth), 1024u);
+            auto threads = detail::round_up(static_cast<unsigned int>(input_width * input_height * input_depth), 1024u);
             auto blocks = threads / 1024u;
 
             auto iwb = static_cast<unsigned int>(input_width) / blocks;
-            auto dim_x = ((iwb < 16u) && (iwb != 0u)) ? iwb : detail::roundUp(iwb, 16u);
+            auto dim_x = ((iwb < 16u) && (iwb != 0u)) ? iwb : detail::round_up(iwb, 16u);
             auto ihb = static_cast<unsigned int>(input_height) / blocks;
-            auto dim_y = ((ihb < 16u) && (ihb != 0u)) ? ihb : detail::roundUp(ihb, 16u);
+            auto dim_y = ((ihb < 16u) && (ihb != 0u)) ? ihb : detail::round_up(ihb, 16u);
             auto idb = static_cast<unsigned int>(input_depth) / blocks;
-            auto dim_z = ((idb < 4u) && (idb != 0u)) ? idb : detail::roundUp(idb, 4u);
+            auto dim_z = ((idb < 4u) && (idb != 0u)) ? idb : detail::round_up(idb, 4u);
             auto block_size = dim3{dim_x, dim_y, dim_z};
             auto grid_size = dim3{static_cast<unsigned int>((input_width + block_size.x - 1) / block_size.x),
                                     static_cast<unsigned int>((input_height + block_size.y - 1) / block_size.y),

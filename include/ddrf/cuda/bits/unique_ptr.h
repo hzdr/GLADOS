@@ -22,18 +22,18 @@ namespace ddrf
         struct device_deleter { auto operator()(void* p) noexcept -> void { cudaFree(p); }};
         struct host_deleter { auto operator()(void* p) noexcept -> void { cudaFreeHost(p); }};
 
-        template <class T, class Deleter, bool pitched, detail::memory_location loc, bool pinned>
+        template <class T, class Deleter, bool pitched, memory_location loc, bool pinned>
         class unique_ptr {};
 
-        template <class T, class Deleter, detail::memory_location loc>
-        class unique_ptr<T, Deleter, true, loc, false> // As of now (CUDA 7.5) pinned host memory is never pitched
+        template <class T, class Deleter, memory_location loc>
+        class unique_ptr<T, Deleter, true, loc, false> // As of now (CUDA 8.0) pinned host memory is never pitched
         {
             public:
                 using pointer = pitched_ptr<T>;
                 using element_type = T;
                 using deleter_type = Deleter;
-                using memory_location = loc;
 
+                static constexpr auto memory_location = loc;
                 static constexpr auto pitched_memory = true;
                 static constexpr auto pinned_memory = false;
 
@@ -95,7 +95,7 @@ namespace ddrf
 
                 auto release() noexcept -> pointer
                 {
-                    return ptr_.release();
+                    return {ptr_.release(), pitch_};
                 }
 
                 /*
@@ -129,7 +129,7 @@ namespace ddrf
                     other.pitch_ = tmp;
                 }
 
-                auto get() const noexcept -> pointer
+                auto get() const noexcept -> element_type*
                 {
                     return ptr_.get();
                 }
@@ -159,15 +159,15 @@ namespace ddrf
                 std::size_t pitch_;
         };
 
-        template <class T, class Deleter, detail::memory_location loc, bool pinned>
+        template <class T, class Deleter, memory_location loc, bool pinned>
         class unique_ptr<T, Deleter, false, loc, pinned>
         {
             public:
                 using pointer = T*;
                 using element_type = T;
                 using deleter_type = Deleter;
-                using memory_location = loc;
 
+                static constexpr auto memory_location = loc;
                 static constexpr auto pitched_memory = false;
                 static constexpr auto pinned_memory = pinned;
 
@@ -285,16 +285,16 @@ namespace ddrf
         };
 
         template <class T>
-        using device_ptr = unique_ptr<T, device_deleter, false, detail::memory_location::device, false>;
+        using device_ptr = unique_ptr<T, device_deleter, false, memory_location::device, false>;
 
         template <class T>
-        using pitched_device_ptr = unique_ptr<T, device_deleter, true, detail::memory_location::device, false>;
+        using pitched_device_ptr = unique_ptr<T, device_deleter, true, memory_location::device, false>;
 
         template <class T>
-        using host_ptr = unique_ptr<T, std::default_delete<T[]>, false, detail::memory_location::host, false>;
+        using host_ptr = unique_ptr<T, std::default_delete<T[]>, false, memory_location::host, false>;
 
         template <class T>
-        using pinned_host_ptr = unique_ptr<T, host_deleter, false, detail::memory_location::host, true>;
+        using pinned_host_ptr = unique_ptr<T, host_deleter, false, memory_location::host, true>;
 
         template <class T>
         auto make_unique_device(std::size_t n) -> device_ptr<T>
@@ -312,17 +312,17 @@ namespace ddrf
             auto pitch = std::size_t{};
             if(cudaMallocPitch(reinterpret_cast<void**>(&ptr), &pitch, x * sizeof(T), y) == cudaErrorMemoryAllocation)
                 throw bad_alloc();
-            return pitched_device_ptr<T>{ptr, pitch};
+            return pitched_device_ptr<T>{pitched_ptr<T>{reinterpret_cast<T*>(ptr), pitch}};
         }
 
         template <class T>
         auto make_unique_device(std::size_t x, std::size_t y, std::size_t z) -> pitched_device_ptr<T>
         {
             auto extent = make_cudaExtent(x * sizeof(T), y, z);
-            auto pitched_ptr = cudaPitchedPtr{};
-            if(cudaMalloc3D(&pitched_ptr, extent) == cudaErrorMemoryAllocation)
+            auto cuda_pitched_ptr = cudaPitchedPtr{};
+            if(cudaMalloc3D(&cuda_pitched_ptr, extent) == cudaErrorMemoryAllocation)
                 throw bad_alloc();
-            return pitched_device_ptr<T>{pitched_ptr.ptr, pitched_ptr.pitch};
+            return pitched_device_ptr<T>{pitched_ptr<T>{reinterpret_cast<T*>(cuda_pitched_ptr.ptr), cuda_pitched_ptr.pitch}};
         }
 
         template <class T>
@@ -370,125 +370,126 @@ namespace ddrf
             return pinned_host_ptr<T>{ptr};
         }
 
-        template <class T1, class D1, bool p1, location l1, class T2, class D2, bool p2, location l2>
-        auto operator==(const unique_ptr<T1, D1, p1, l1>& x, const unique_ptr<T2, D2, p2, l2>& y) -> bool
+        template <class T1, class D1, bool p1, memory_location l1, bool pn1, class T2, class D2, bool p2, memory_location l2, bool pn2>
+        auto operator==(const unique_ptr<T1, D1, p1, l1, pn2>& x, const unique_ptr<T2, D2, p2, l2, pn2>& y) -> bool
         {
             if(l1 != l2) return false; // same location?
             if(p1 != p2) return false; // same pointer type?
+            if(pn1 != pn2) return false; // are both pinned / not pinned?
             return x.get() == y.get();
         }
 
-        template <class T1, class D1, bool p1, location l1, class T2, class D2, bool p2, location l2>
-        auto operator!=(const unique_ptr<T1, D1, p1, l1>& x, const unique_ptr<T2, D2, p2, l2>& y) -> bool
+        template <class T1, class D1, bool p1, memory_location l1, bool pn1, class T2, class D2, bool p2, memory_location l2, bool pn2>
+        auto operator!=(const unique_ptr<T1, D1, p1, l1, pn1>& x, const unique_ptr<T2, D2, p2, l2, pn2>& y) -> bool
         {
             return !(x == y);
         }
 
-        template <class T1, class D1, bool p1, location l1, class T2, class D2, bool p2, location l2>
-        auto operator<(const unique_ptr<T1, D1, p1, l1>& x, const unique_ptr<T2, D2, p2, l2>& y)
-        -> typename std::enable_if<(p1 == p2) && (l1 == l2) && (l1 == location::host), bool>::type
+        template <class T1, class D1, bool p1, memory_location l1, bool pn1, class T2, class D2, bool p2, memory_location l2, bool pn2>
+        auto operator<(const unique_ptr<T1, D1, p1, l1, pn1>& x, const unique_ptr<T2, D2, p2, l2, pn2>& y)
+        -> typename std::enable_if<(p1 == p2) && (l1 == l2) && (l1 == memory_location::host) && (pn1 == pn2), bool>::type
         {
             return std::less<typename std::common_type
-                                <typename unique_ptr<T1, D1, p1, l1>::pointer,
-                                typename unique_ptr<T2, D2, p2, l2>::pointer>::type>()
+                                <typename unique_ptr<T1, D1, p1, l1, pn1>::pointer,
+                                typename unique_ptr<T2, D2, p2, l2, pn2>::pointer>::type>()
                                 (x.get(), y.get());
         }
 
-        template <class T1, class D1, bool p1, location l1, class T2, class D2, bool p2, location l2>
-        auto operator<=(const unique_ptr<T1, D1, p1, l1>& x, const unique_ptr<T2, D2, p2, l2>& y)
-        -> typename std::enable_if<(p1 == p2) && (l1 == l2) && (l1 == location::host), bool>::type
+        template <class T1, class D1, bool p1, memory_location l1, bool pn1, class T2, class D2, bool p2, memory_location l2, bool pn2>
+        auto operator<=(const unique_ptr<T1, D1, p1, l1, pn1>& x, const unique_ptr<T2, D2, p2, l2, pn2>& y)
+        -> typename std::enable_if<(p1 == p2) && (l1 == l2) && (l1 == memory_location::host) && (pn1 == pn2), bool>::type
         {
             return !(y < x);
         }
 
-        template <class T1, class D1, bool p1, location l1, class T2, class D2, bool p2, location l2>
-        auto operator>(const unique_ptr<T1, D1, p1, l1>& x, const unique_ptr<T2, D2, p2, l2>& y)
-        -> typename std::enable_if<(p1 == p2) && (l1 == l2) && (l1 == location::host), bool>::type
+        template <class T1, class D1, bool p1, memory_location l1, bool pn1, class T2, class D2, bool p2, memory_location l2, bool pn2>
+        auto operator>(const unique_ptr<T1, D1, p1, l1, pn1>& x, const unique_ptr<T2, D2, p2, l2, pn2>& y)
+        -> typename std::enable_if<(p1 == p2) && (l1 == l2) && (l1 == memory_location::host) && (pn1 == pn2), bool>::type
         {
             return y < x;
         }
 
-        template <class T1, class D1, bool p1, location l1, class T2, class D2, bool p2, location l2>
-        auto operator>=(const unique_ptr<T1, D1, p1, l1>& x, const unique_ptr<T2, D2, p2, l2>& y)
-        -> typename std::enable_if<(p1 == p2) && (l1 == l2) && (l1 == location::host), bool>::type
+        template <class T1, class D1, bool p1, memory_location l1, bool pn1, class T2, class D2, bool p2, memory_location l2, bool pn2>
+        auto operator>=(const unique_ptr<T1, D1, p1, l1, pn1>& x, const unique_ptr<T2, D2, p2, l2, pn2>& y)
+        -> typename std::enable_if<(p1 == p2) && (l1 == l2) && (l1 == memory_location::host) && (pn1 == pn2), bool>::type
         {
             return !(x < y);
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator==(const unique_ptr<T, D, p, l>& x, std::nullptr_t) noexcept -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator==(const unique_ptr<T, D, p, l, pn>& x, std::nullptr_t) noexcept -> bool
         {
             return !x;
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator==(std::nullptr_t, const unique_ptr<T, D, p, l>& y) noexcept -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator==(std::nullptr_t, const unique_ptr<T, D, p, l, pn>& y) noexcept -> bool
         {
             return !y;
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator!=(const unique_ptr<T, D, p, l>& x, std::nullptr_t) noexcept -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator!=(const unique_ptr<T, D, p, l, pn>& x, std::nullptr_t) noexcept -> bool
         {
             return static_cast<bool>(x);
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator!=(std::nullptr_t, const unique_ptr<T, D, p, l>& y) noexcept -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator!=(std::nullptr_t, const unique_ptr<T, D, p, l, pn>& y) noexcept -> bool
         {
             return static_cast<bool>(y);
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator<(const unique_ptr<T, D, p, l>& x, std::nullptr_t) -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator<(const unique_ptr<T, D, p, l, pn>& x, std::nullptr_t) -> bool
         {
-            return std::less<typename unique_ptr<T, D, p, l>::pointer>()(x.get(), nullptr);
+            return std::less<typename unique_ptr<T, D, p, l, pn>::pointer>()(x.get(), nullptr);
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator<(std::nullptr_t, const unique_ptr<T, D, p, l>& y) -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator<(std::nullptr_t, const unique_ptr<T, D, p, l, pn>& y) -> bool
         {
-            return std::less<typename unique_ptr<T, D, p, l>::pointer>()(nullptr, y.get());
+            return std::less<typename unique_ptr<T, D, p, l, pn>::pointer>()(nullptr, y.get());
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator<=(const unique_ptr<T, D, p, l>& x, std::nullptr_t) -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator<=(const unique_ptr<T, D, p, l, pn>& x, std::nullptr_t) -> bool
         {
             return !(nullptr < x);
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator<=(std::nullptr_t, const unique_ptr<T, D, p, l>& y) -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator<=(std::nullptr_t, const unique_ptr<T, D, p, l, pn>& y) -> bool
         {
             return !(y < nullptr);
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator>(const unique_ptr<T, D, p, l>& x, std::nullptr_t) -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator>(const unique_ptr<T, D, p, l, pn>& x, std::nullptr_t) -> bool
         {
             return nullptr < x;
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator>(std::nullptr_t, const unique_ptr<T, D, p, l>& y) -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator>(std::nullptr_t, const unique_ptr<T, D, p, l, pn>& y) -> bool
         {
             return y < nullptr;
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator>=(const unique_ptr<T, D, p, l>& x, std::nullptr_t) -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator>=(const unique_ptr<T, D, p, l, pn>& x, std::nullptr_t) -> bool
         {
             return !(x < nullptr);
         }
 
-        template <class T, class D, bool p, location l>
-        auto operator>=(std::nullptr_t, const unique_ptr<T, D, p, l>& y) -> bool
+        template <class T, class D, bool p, memory_location l, bool pn>
+        auto operator>=(std::nullptr_t, const unique_ptr<T, D, p, l, pn>& y) -> bool
         {
             return !(nullptr < y);
         }
 
-        template <class T, class Deleter, bool pitched, detail::memory_location loc>
-        auto swap(unique_ptr<T, Deleter, pitched, loc>& lhs, unique_ptr<T, Deleter, pitched, loc>& rhs) noexcept -> void
+        template <class T, class Deleter, bool pitched, memory_location loc, bool pinned>
+        auto swap(unique_ptr<T, Deleter, pitched, loc, pinned>& lhs, unique_ptr<T, Deleter, pitched, loc, pinned>& rhs) noexcept -> void
         {
             lhs.swap(rhs);
         }
