@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <type_traits>
+#include <utility>
 
 #include <cufft.h>
 
@@ -46,6 +47,32 @@ namespace ddrf
                 : valid_{true}
                 {
                     handle_result(cufftPlanMany(&handle_, rank, n, inembed, istride, idist, onembed, ostride, odist, transformation_type, batch));
+                }
+
+                plan(const plan& other) noexcept
+                : handle_{other.handle_}, valid_{other.valid_}
+                {}
+
+                auto operator=(const plan& other) noexcept -> plan&
+                {
+                    handle_ = other.handle_;
+                    valid_ = other.valid_;
+                    return *this;
+                }
+
+
+                plan(plan&& other) noexcept
+                : handle_{std::move(other.handle_)}, valid_{other.valid_}
+                {
+                    other.valid_ = false;
+                }
+
+                auto operator=(plan&& other) noexcept -> plan&
+                {
+                    handle_ = std::move(other.handle_);
+                    valid_ = other.valid_;
+                    other.valid_ = false;
+                    return *this;
                 }
 
                 ~plan() { if(valid_) cufftDestroy(handle_); }

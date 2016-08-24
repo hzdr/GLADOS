@@ -57,7 +57,7 @@ namespace ddrf
             private:
                 queue_type queue_;
                 size_type limit_;
-                std::atomic_flag lock_;
+                std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
         };
     }
 }

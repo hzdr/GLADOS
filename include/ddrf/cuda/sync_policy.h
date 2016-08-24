@@ -19,7 +19,7 @@ namespace ddrf
         namespace detail
         {
             template <class D, class S>
-            auto create_3D_parms(const D& d, const S& s, std::size_t x, std::size_t y, std::size_t z,
+            auto create_3D_parms(D& d, const S& s, std::size_t x, std::size_t y, std::size_t z,
                     std::size_t d_off_x, std::size_t d_off_y, std::size_t d_off_z,
                     std::size_t s_off_x, std::size_t s_off_y, std::size_t s_off_z) -> cudaMemcpy3DParms
                     {
@@ -29,13 +29,22 @@ namespace ddrf
 
                         auto to_uchar_pos = [](std::size_t v, std::size_t size) { return v * size; };
                         auto x_ext = to_uchar_pos(x, d_elem_size);
-                        auto y_ext = to_uchar_pos(y, d_elem_size);
-                        auto z_ext = to_uchar_pos(z, d_elem_size);
 
-                        auto extent = make_cudaExtent(x_ext, y_ext, z_ext);
+                        auto extent = make_cudaExtent(x_ext, y, z);
 
-                        auto d_pitched = make_cudaPitchedPtr(d.get(), d.pitch(), x, y);
-                        auto s_pitched = make_cudaPitchedPtr(s.get(), s.pitch(), x, y);
+                        constexpr auto d_size = sizeof(typename D::element_type);
+                        constexpr auto s_size = sizeof(typename S::element_type);
+
+                        auto d_pitch = d.pitch();
+                        if(D::mem_location == memory_location::host)
+                            d_pitch = x * d_size;
+
+                        auto s_pitch = s.pitch();
+                        if(S::mem_location == memory_location::host)
+                            s_pitch = x * s_size;
+
+                        auto d_pitched = make_cudaPitchedPtr(d.get(), d_pitch, x, y);
+                        auto s_pitched = make_cudaPitchedPtr(s.get(), s_pitch, x, y);
 
                         auto d_pos_x = to_uchar_pos(d_off_x, d_elem_size);
                         auto d_pos_y = to_uchar_pos(d_off_y, d_elem_size);
@@ -53,7 +62,7 @@ namespace ddrf
                         parms.dstPos = d_pos;
                         parms.dstPtr = d_pitched;
                         parms.extent = extent;
-                        parms.kind = detail::memcpy_direction<D::memory_location, S::memory_location>::value;
+                        parms.kind = detail::memcpy_direction<D::mem_location, S::mem_location>::value;
 
                         return parms;
             }
@@ -70,7 +79,7 @@ namespace ddrf
 
                     constexpr auto size = sizeof(typename D::element_type);
 
-                    auto err = cudaMemcpy(d.get(), s.get(), x * size, detail::memcpy_direction<D::memory_location, S::memory_location>::value);
+                    auto err = cudaMemcpy(d.get(), s.get(), x * size, detail::memcpy_direction<D::mem_location, S::mem_location>::value);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -78,12 +87,20 @@ namespace ddrf
                 template <class D, class S>
                 auto copy(D& d, const S& s, std::size_t x, std::size_t y) const -> void
                 {
-                    static_assert((D::memory_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 2D copy.");
-                    static_assert((S::memory_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 2D copy.");
+                    static_assert((D::mem_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 2D copy.");
+                    static_assert((S::mem_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 2D copy.");
 
                     constexpr auto size = sizeof(typename D::element_type);
 
-                    auto err = cudaMemcpy2D(d.get(), d.pitch(), s.get(), s.pitch(), x * size, y, detail::memcpy_direction<D::memory_location, S::memory_location>::value);
+                    auto d_pitch = d.pitch();
+                    if(D::mem_location == memory_location::host)
+                        d_pitch = x * size;
+
+                    auto s_pitch = s.pitch();
+                    if(S::mem_location == memory_location::host)
+                        s_pitch = x * size;
+
+                    auto err = cudaMemcpy2D(d.get(), d_pitch, s.get(), s_pitch, x * size, y, detail::memcpy_direction<D::mem_location, S::mem_location>::value);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -94,8 +111,8 @@ namespace ddrf
                             std::size_t s_off_x = 0, std::size_t s_off_y = 0, std::size_t s_off_z = 0) const
                 -> void
                 {
-                    static_assert((D::memory_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 3D copy.");
-                    static_assert((S::memory_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 3D copy.");
+                    static_assert((D::mem_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 3D copy.");
+                    static_assert((S::mem_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 3D copy.");
 
                     auto parms = detail::create_3D_parms(d, s, x, y, z, d_off_x, d_off_y, d_off_z, s_off_x, s_off_y, s_off_z);
                     auto err = cudaMemcpy3D(&parms);
@@ -105,7 +122,7 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x) const
-                -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(!P::pitched_memory, "The memory on the device must not be pitched for a 1D fill operation.");
 
@@ -117,14 +134,14 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x) const
-                -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::host, void>::type
                 {
                     std::fill_n(p.get(), x, value);
                 }
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x, std::size_t y) const
-                -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 2D fill operation.");
 
@@ -136,14 +153,14 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x, std::size_t y) const
-                -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::host, void>::type
                 {
                     std::fill_n(p.get(), x * y, value);
                 }
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
-                -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 3D fill operation.");
 
@@ -158,7 +175,7 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
-                -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::host, void>::type
                 {
                     std::fill_n(p.get(), x * y * z, value);
                 }
@@ -172,8 +189,8 @@ namespace ddrf
                 {
                     static_assert(!D::pitched_memory, "Destination memory must not be pitched for a 1D copy");
                     static_assert(!S::pitched_memory, "Source memory must not be pitched for a 1D copy");
-                    static_assert((D::memory_location == memory_location::device) || D::pinned_memory, "Destination on host memory must be pinned for asynchronous copies.");
-                    static_assert((S::memory_location == memory_location::device) || S::pinned_memory, "Source on host memory must be pinned for asynchronous copies.");
+                    static_assert((D::mem_location == memory_location::device) || D::pinned_memory, "Destination on host memory must be pinned for asynchronous copies.");
+                    static_assert((S::mem_location == memory_location::device) || S::pinned_memory, "Source on host memory must be pinned for asynchronous copies.");
 
                     constexpr auto size = sizeof(typename D::element_type);
 
@@ -182,7 +199,7 @@ namespace ddrf
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
 
-                    err = cudaMemcpyAsync(d.get(), s.get(), x * size, detail::memcpy_direction<D::memory_location, S::memory_location>::value, stream);
+                    err = cudaMemcpyAsync(d.get(), s.get(), x * size, detail::memcpy_direction<D::mem_location, S::mem_location>::value, stream);
                     if(err != cudaSuccess)
                     {
                         auto err2 = cudaStreamDestroy(stream);
@@ -199,10 +216,10 @@ namespace ddrf
                 template <class D, class S>
                 auto copy(D& d, const S& s, std::size_t x, std::size_t y) const -> void
                 {
-                    static_assert((D::memory_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 2D copy.");
-                    static_assert((S::memory_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 2D copy.");
-                    static_assert((D::memory_location == memory_location::device) || D::pinned_memory, "Destination memory on the host must be pinned for asynchronous copies.");
-                    static_assert((S::memory_location == memory_location::device) || S::pinned_memory, "Source memory on the host must be pinned for asynchronous copies.");
+                    static_assert((D::mem_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 2D copy.");
+                    static_assert((S::mem_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 2D copy.");
+                    static_assert((D::mem_location == memory_location::device) || D::pinned_memory, "Destination memory on the host must be pinned for asynchronous copies.");
+                    static_assert((S::mem_location == memory_location::device) || S::pinned_memory, "Source memory on the host must be pinned for asynchronous copies.");
 
                     constexpr auto size = sizeof(typename D::element_type);
 
@@ -211,7 +228,15 @@ namespace ddrf
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
 
-                    err = cudaMemcpy2DAsync(d.get(), d.pitch(), s.get(), s.pitch(), x * size, y, detail::memcpy_direction<D::memory_location, S::memory_location>::value, stream);
+                    auto d_pitch = d.pitch();
+                    if(D::mem_location == memory_location::host)
+                        d_pitch = x * size;
+
+                    auto s_pitch = s.pitch();
+                    if(S::mem_location == memory_location::host)
+                        s_pitch = x * size;
+
+                    err = cudaMemcpy2DAsync(d.get(), d_pitch, s.get(), s_pitch, x * size, y, detail::memcpy_direction<D::mem_location, S::mem_location>::value, stream);
                     if(err != cudaSuccess)
                     {
                         auto err2 = cudaStreamDestroy(stream);
@@ -230,12 +255,12 @@ namespace ddrf
                         std::size_t d_off_x = 0, std::size_t d_off_y = 0, std::size_t d_off_z = 0,
                         std::size_t s_off_x = 0, std::size_t s_off_y = 0, std::size_t s_off_z = 0) const -> void
                 {
-                    static_assert((D::memory_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 3D copy.");
-                    static_assert((S::memory_location == memory_location::host) || S::pitched_memory, "Source memory on the host must be pitched for a 3D copy.");
-                    static_assert((D::memory_location == memory_location::device) || D::pinned_memory, "Destination memory on the host must be pinned for asynchronous copies.");
-                    static_assert((S::memory_location == memory_location::device) || S::pinned_memory, "Source memory on the host must be pinned for asynchronous copies.");
+                    static_assert((D::mem_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 3D copy.");
+                    static_assert((S::mem_location == memory_location::host) || S::pitched_memory, "Source memory on the host must be pitched for a 3D copy.");
+                    static_assert((D::mem_location == memory_location::device) || D::pinned_memory, "Destination memory on the host must be pinned for asynchronous copies.");
+                    static_assert((S::mem_location == memory_location::device) || S::pinned_memory, "Source memory on the host must be pinned for asynchronous copies.");
 
-                    auto parms = detail::create_3D_parms(std::forward<D>(d), std::forward<const S>(s), x, y, z, d_off_x, d_off_y, d_off_z, s_off_x, s_off_y, s_off_z);
+                    auto parms = detail::create_3D_parms(d, s, x, y, z, d_off_x, d_off_y, d_off_z, s_off_x, s_off_y, s_off_z);
 
                     auto stream = cudaStream_t{};
                     auto err = cudaStreamCreate(&stream);
@@ -258,7 +283,7 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x) const
-                -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(!P::pitched_memory, "The memory on the device must not be pitched for a 1D fill operation.");
 
@@ -285,7 +310,7 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x) const
-                -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::host, void>::type
                 {
                     // in an ideal world we wouldn't spawn threads manually but use std::async instead.
                     // However, the world isn't ideal and std::async is completely useless when you want to launch "fire and forget" tasks.
@@ -296,7 +321,7 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x, std::size_t y) const
-                -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 2D fill operation.");
 
@@ -323,7 +348,7 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x, std::size_t y) const
-                -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::host, void>::type
                 {
                     auto f = [&]() { std::fill_n(p.get(), x * y, value); };
                     auto&& t = std::thread{f};
@@ -332,7 +357,7 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
-                -> typename std::enable_if<P::memory_location == memory_location::device, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 3D fill operation.");
 
@@ -345,7 +370,7 @@ namespace ddrf
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
 
-                    err = cudaMemset3D(pitched_ptr, value, extent);
+                    err = cudaMemset3DAsync(pitched_ptr, value, extent, stream);
                     if(err != cudaSuccess)
                     {
                         auto err2 = cudaStreamDestroy(stream);
@@ -361,7 +386,7 @@ namespace ddrf
 
                 template <class P>
                 auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
-                -> typename std::enable_if<P::memory_location == memory_location::host, void>::type
+                -> typename std::enable_if<P::mem_location == memory_location::host, void>::type
                 {
                     auto f = [&](){ std::fill_n(p.get(), x * y * z, value); };
                     auto&& t = std::thread{f};

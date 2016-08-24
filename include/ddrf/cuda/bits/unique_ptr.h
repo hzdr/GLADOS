@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <functional>
-#include <memory>
 #include <type_traits>
 #include <utility>
 
@@ -33,21 +32,21 @@ namespace ddrf
                 using element_type = T;
                 using deleter_type = Deleter;
 
-                static constexpr auto memory_location = loc;
+                static constexpr auto mem_location = loc;
                 static constexpr auto pitched_memory = true;
                 static constexpr auto pinned_memory = false;
 
-                constexpr unique_ptr() noexcept : ptr_{}, pitch_{0u}
+                constexpr unique_ptr() noexcept : ptr_{nullptr}, pitch_{0u}, deleter_{}
                 {}
 
-                constexpr unique_ptr(std::nullptr_t) noexcept : ptr_{nullptr}, pitch_{0u}
+                constexpr unique_ptr(std::nullptr_t) noexcept : ptr_{nullptr}, pitch_{0u}, deleter_{}
                 {}
 
                 /* FIXME: In C++17 the constructor will be templated to template<class U>(U ptr). Change the
                  * following constructor accordingly as soon as CUDA supports C++17
                  */
                 explicit unique_ptr(pointer ptr) noexcept
-                : ptr_{ptr.ptr()}, pitch_{ptr.pitch()}
+                : ptr_{ptr.ptr()}, pitch_{ptr.pitch()}, deleter_{}
                 {}
 
                 /*
@@ -64,51 +63,75 @@ namespace ddrf
                  */
                 unique_ptr(pointer ptr,
                             typename std::conditional<std::is_reference<deleter_type>::value, deleter_type, const deleter_type&>::type d1) noexcept
-                : ptr_{ptr.ptr(), d1}, pitch_{ptr.pitch()}
+                : ptr_{ptr.ptr()}, pitch_{ptr.pitch()}, deleter_(d1)
                 {}
 
                 unique_ptr(pointer ptr,
                             typename std::remove_reference<deleter_type>::type&& d2) noexcept
-                : ptr_{ptr.ptr(), d2}, pitch_{ptr.pitch()}
+                : ptr_{ptr.ptr()}, pitch_{ptr.pitch()}, deleter_(d2)
                 {}
 
                 unique_ptr(unique_ptr&& u)
+                : ptr_{std::move(u.ptr_)}, pitch_{u.pitch_}
+                , deleter_(std::is_reference<deleter_type>::value ? u.deleter_ : std::move(u.deleter_))
                 {
-                    ptr_ = std::move(u.ptr_);
-                    pitch_ = u.pitch_;
+                    u.ptr_ = nullptr;
+                    u.pitch_ = 0;
                 }
 
-                ~unique_ptr() = default;
+                ~unique_ptr()
+                {
+                    if(ptr_ != nullptr)
+                        deleter_(ptr_);
+                }
 
                 auto operator=(unique_ptr&& r) noexcept -> unique_ptr&
                 {
+                    if(ptr_ != nullptr)
+                        deleter_(ptr_);
+
                     ptr_ = std::move(r.ptr_);
                     pitch_ = r.pitch_;
+
+                    if(std::is_reference<deleter_type>::value)
+                        deleter_ = r.deleter_;
+                    else
+                        deleter_ = std::move(r.deleter_);
+
+                    r.ptr_ = nullptr;
+                    r.pitch_ = 0;
+
                     return *this;
                 }
 
                 auto operator=(std::nullptr_t) noexcept -> unique_ptr&
                 {
+                    if(ptr_ != nullptr)
+                        deleter_(ptr_);
+
                     ptr_ = nullptr;
+                    pitch_ = 0;
                     return *this;
                 }
 
                 auto release() noexcept -> pointer
                 {
-                    return {ptr_.release(), pitch_};
+                    auto ret = pointer{ptr_, pitch_};
+                    ptr_ = nullptr;
+                    return ret;
                 }
 
                 /*
                  * FIXME: Remove this method as soon as CUDA supports C++17
-                 *
-                 * Note that the following method has a slightly different behaviour when
-                 * compared to the STL's unique_ptr. The latter uses pointer() as a default
-                 * argument while this version does not.
                  */
-                auto reset(pointer ptr) noexcept -> void
+                auto reset(pointer ptr = pointer()) noexcept -> void
                 {
-                    ptr_.reset(ptr.ptr());
+                    auto old_ptr = ptr_;
+                    ptr_ = ptr.ptr();
                     pitch_ = ptr.pitch();
+
+                    if(old_ptr != nullptr)
+                        deleter_(old_ptr);
                 }
 
                 /* FIXME: Change this to standard behaviour as soon as CUDA supports C++17. */
@@ -117,36 +140,39 @@ namespace ddrf
 
                 auto reset(std::nullptr_t p) noexcept -> void
                 {
-                    ptr_.reset(p);
+                    auto old_ptr = ptr_;
+                    ptr_ = nullptr;
                     pitch_ = 0;
+
+                    if(old_ptr != nullptr)
+                        deleter_(old_ptr);
                 }
 
                 auto swap(unique_ptr& other) noexcept -> void
                 {
-                    ptr_.swap(other.ptr_);
-                    auto tmp = pitch_;
-                    pitch_ = other.pitch_;
-                    other.pitch_ = tmp;
+                    std::swap(ptr_, other.ptr_);
+                    std::swap(pitch_, other.pitch_);
+                    std::swap(deleter_, other.deleter_);
                 }
 
                 auto get() const noexcept -> element_type*
                 {
-                    return ptr_.get();
+                    return ptr_;
                 }
 
                 auto get_deleter() noexcept -> deleter_type&
                 {
-                    return ptr_.get_deleter();
+                    return deleter_;
                 }
 
                 auto get_deleter() const noexcept -> const deleter_type&
                 {
-                    return ptr_.get_deleter();
+                    return deleter_;
                 }
 
                 explicit operator bool() const noexcept
                 {
-                    return get() != nullptr;
+                    return ptr_ != nullptr;
                 }
 
                 auto pitch() const noexcept -> std::size_t
@@ -155,8 +181,9 @@ namespace ddrf
                 }
 
             private:
-                std::unique_ptr<element_type[], deleter_type> ptr_;
+                element_type* ptr_;
                 std::size_t pitch_;
+                deleter_type deleter_;
         };
 
         template <class T, class Deleter, memory_location loc, bool pinned>
@@ -167,21 +194,21 @@ namespace ddrf
                 using element_type = T;
                 using deleter_type = Deleter;
 
-                static constexpr auto memory_location = loc;
+                static constexpr auto mem_location = loc;
                 static constexpr auto pitched_memory = false;
                 static constexpr auto pinned_memory = pinned;
 
-                constexpr unique_ptr() noexcept : ptr_{}
+                constexpr unique_ptr() noexcept : ptr_{nullptr}, deleter_{}
                 {}
 
-                constexpr unique_ptr(std::nullptr_t) noexcept : ptr_{nullptr}
+                constexpr unique_ptr(std::nullptr_t) noexcept : ptr_{nullptr}, deleter_{}
                 {}
 
                 /* FIXME: In C++17 the constructor will be templated to template<class U>(U ptr). Change the
                  * following constructor accordingly as soon as CUDA supports C++17
                  */
                 explicit unique_ptr(pointer ptr) noexcept
-                : ptr_{ptr}
+                : ptr_{ptr}, deleter_{}
                 {}
 
                 /*
@@ -198,35 +225,71 @@ namespace ddrf
                  */
                 unique_ptr(pointer ptr,
                             typename std::conditional<std::is_reference<deleter_type>::value, deleter_type, const deleter_type&>::type d1) noexcept
-                : ptr_{ptr, d1}
+                : ptr_{ptr}, deleter_(d1)
                 {}
 
                 unique_ptr(pointer ptr,
                             typename std::remove_reference<deleter_type>::type&& d2) noexcept
-                : ptr_{ptr, d2}
+                : ptr_{ptr}, deleter_(d2)
                 {}
 
                 unique_ptr(unique_ptr&& u)
-                : ptr_{std::move(u.ptr_)}
-                {}
+                {
+                    if(u != nullptr)
+                    {
+                        ptr_ = u.ptr_;
+                        u.ptr_ = nullptr;
+                    }
+                    else
+                        ptr_ = nullptr;
 
-                ~unique_ptr() = default;
+                    if(std::is_reference<deleter_type>::value)
+                        deleter_ = u.deleter_;
+                    else
+                        deleter_ = std::move(u.deleter_);
+                }
+
+                ~unique_ptr()
+                {
+                    if(ptr_ != nullptr)
+                        deleter_(ptr_);
+                }
 
                 auto operator=(unique_ptr&& r) noexcept -> unique_ptr&
                 {
-                    ptr_ = std::move(r.ptr_);
+                    if(ptr_ != nullptr)
+                        deleter_(ptr_);
+
+                    if(r != nullptr)
+                    {
+                        ptr_ = r.ptr_;
+                        if(std::is_reference<deleter_type>::value)
+                            deleter_ = r.deleter_;
+                        else
+                            deleter_ = std::move(r.deleter_);
+
+                        r.ptr_ = nullptr;
+                    }
+                    else
+                        ptr_ = nullptr;
+
                     return *this;
                 }
 
                 auto operator=(std::nullptr_t) noexcept -> unique_ptr&
                 {
+                    if(ptr_ != nullptr)
+                        deleter_(ptr_);
+
                     ptr_ = nullptr;
                     return *this;
                 }
 
                 auto release() noexcept -> pointer
                 {
-                    return ptr_.release();
+                    auto p = ptr_;
+                    ptr_ = nullptr;
+                    return p;
                 }
 
                 /*
@@ -236,9 +299,13 @@ namespace ddrf
                  * compared to the STL's unique_ptr. The latter uses pointer() as a default
                  * argument.
                  */
-                auto reset(pointer ptr) noexcept -> void
+                auto reset(pointer ptr = pointer()) noexcept -> void
                 {
-                    ptr_.reset(ptr);
+                    auto old_ptr = ptr;
+                    ptr_ = ptr;
+
+                    if(old_ptr != nullptr)
+                        deleter_(ptr_);
                 }
 
                 /* FIXME: Change this to standard behaviour as soon as CUDA supports C++17. */
@@ -247,32 +314,37 @@ namespace ddrf
 
                 auto reset(std::nullptr_t p) noexcept -> void
                 {
-                    ptr_.reset(p);
+                    auto old_ptr = ptr_;
+                    ptr_ = nullptr;
+
+                    if(old_ptr != nullptr)
+                        deleter_(ptr_);
                 }
 
                 auto swap(unique_ptr& other) noexcept -> void
                 {
-                    ptr_.swap(other.ptr_);
+                    std::swap(ptr_, other.ptr_);
+                    std::swap(deleter_, other.deleter_);
                 }
 
                 auto get() const noexcept -> pointer
                 {
-                    return ptr_.get();
+                    return ptr_;
                 }
 
                 auto get_deleter() noexcept -> deleter_type&
                 {
-                    return ptr_.get_deleter();
+                    return deleter_;
                 }
 
                 auto get_deleter() const noexcept -> const deleter_type&
                 {
-                    return ptr_.get_deleter();
+                    return deleter_;
                 }
 
                 explicit operator bool() const noexcept
                 {
-                    return get() != nullptr;
+                    return ptr_ != nullptr;
                 }
 
                 auto pitch() const noexcept -> std::size_t
@@ -281,7 +353,8 @@ namespace ddrf
                 }
 
             private:
-                std::unique_ptr<element_type[], deleter_type> ptr_;
+                pointer ptr_;
+                deleter_type deleter_;
         };
 
         template <class T>
