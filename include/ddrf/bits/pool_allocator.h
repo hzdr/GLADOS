@@ -44,24 +44,37 @@ namespace ddrf
         public:
             pool_allocator() noexcept = default;
 
+            pool_allocator(size_type limit) noexcept
+            : alloc_{}, list_{}, n_{}, limit_{limit}, current_{0}
+            {}
+
             pool_allocator(pool_allocator&& other) noexcept
-            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}, n_{other.n_}
+            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}
+            , n_{other.n_}, limit_{other.limit_}, current_{other.current_.load()}, moved_{other.moved_}
             {
                 if(other.lock_.test_and_set())
                     lock_.test_and_set();
                 else
                     lock_.clear();
+
+                other.moved_ = true;
             }
 
             auto operator=(pool_allocator&& other) noexcept -> pool_allocator&
             {
                 alloc_ = std::move(other.alloc_);
                 list_ = std::move(other.list_);
-                n_ = std::move(other.n_);
+                n_ = other.n_;
+                limit_ = other.limit_;
+                current_ = other.current_.load();
+                moved_ = other.moved_;
+
                 if(other.lock_.test_and_set())
                     lock_.test_and_set();
                 else
                     lock_.clear();
+
+                other.moved_ = true;
 
                 return *this;
             }
@@ -76,13 +89,22 @@ namespace ddrf
 
             auto allocate(size_type n) -> pointer
             {
-                while(lock_.test_and_set(std::memory_order_acquire))
-                    std::this_thread::yield();
+                if(moved_)
+                    return pointer{nullptr};
 
                 if(n_ == 0)
                     n_ = n;
 
                 auto ret = static_cast<pointer>(nullptr);
+
+                if(limit_ != 0)
+                {
+                    while(current_.load() >= limit_)
+                        std::this_thread::yield();
+                }
+
+                while(lock_.test_and_set(std::memory_order_acquire))
+                    std::this_thread::yield();
 
                 if(list_.empty())
                     ret = alloc_.allocate(n_);
@@ -92,6 +114,7 @@ namespace ddrf
                     list_.pop_front();
                 }
 
+                ++current_;
                 lock_.clear(std::memory_order_release);
 
                 fill(ret, 0);
@@ -105,20 +128,30 @@ namespace ddrf
 
             auto deallocate(pointer p, size_type = 0) noexcept -> void
             {
+                if(moved_)
+                    return;
+
                 while(lock_.test_and_set(std::memory_order_acquire))
                     std::this_thread::yield();
 
                 list_.push_front(p);
+                --current_;
                 lock_.clear(std::memory_order_release);
             }
 
             auto fill(pointer p, int value, size_type = 0) -> void
             {
+                if(moved_)
+                    return;
+
                 alloc_.fill(p, value, n_);
             }
 
             auto release() noexcept -> void
             {
+                if(moved_)
+                    return;
+
                 while(lock_.test_and_set(std::memory_order_acquire))
                     std::this_thread::yield();
 
@@ -126,6 +159,7 @@ namespace ddrf
                     alloc_.deallocate(p, n_);
 
                 n_ = 0;
+                current_.store(0);
 
                 lock_.clear(std::memory_order_release);
             }
@@ -135,6 +169,9 @@ namespace ddrf
             std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
             std::forward_list<pointer> list_;
             size_type n_;
+            size_type limit_;
+            std::atomic_size_t current_;
+            bool moved_ = false;
     };
 
     /* 2D specialization */
@@ -166,13 +203,20 @@ namespace ddrf
         public:
             pool_allocator() = default;
 
+            pool_allocator(size_type limit)
+            : alloc_{}, list_{}, x_{}, y_{}, limit_{limit}, current_{0}
+            {}
+
             pool_allocator(pool_allocator&& other) noexcept
-            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}, x_{other.x_}, y_{other.y_}
+            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}
+            , x_{other.x_}, y_{other.y_}, limit_{other.limit_}, current_{other.current_.load()}, moved_{other.moved_}
             {
                 if(other.lock_.test_and_set())
                     lock_.test_and_set();
                 else
                     lock_.clear();
+
+                other.moved_ = true;
             }
 
             auto operator=(pool_allocator&& other) noexcept -> pool_allocator&
@@ -181,10 +225,15 @@ namespace ddrf
                 list_ = std::move(other.list_);
                 x_ = other.x_;
                 y_ = other.y_;
+                limit_ = other.limit_;
+                current_ = other.current_.load();
+                moved_ = other.moved_;
                 if(other.lock_.test_and_set())
                     lock_.test_and_set();
                 else
                     lock_.clear();
+
+                other.moved_ = true;
 
                 return *this;
             }
@@ -199,20 +248,37 @@ namespace ddrf
 
             auto allocate(size_type x, size_type y) -> pointer
             {
-                while(lock_.test_and_set(std::memory_order_acquire))
-                    std::this_thread::yield();
+                if(moved_)
+                    return pointer{nullptr};
+
+                if(x_ == 0)
+                    x_ = x;
+
+                if(y_ == 0)
+                    y_ = y;
 
                 auto ret = static_cast<pointer>(nullptr);
 
+                if(limit_ != 0)
+                {
+                    while(current_.load() >= limit_)
+                        std::this_thread::yield();
+                }
+
+                while(lock_.test_and_set(std::memory_order_acquire))
+                    std::this_thread::yield();
+
                 if(list_.empty())
-                    ret = alloc_.allocate(x, y);
+                    ret = alloc_.allocate(x_, y_);
                 else
                 {
                     ret = std::move(list_.front());
                     list_.pop_front();
                 }
 
+                ++current_;
                 lock_.clear(std::memory_order_release);
+
                 return ret;
             }
 
@@ -224,20 +290,30 @@ namespace ddrf
 
             auto deallocate(pointer p, size_type = 0, size_type = 0) noexcept -> void
             {
+                if(moved_)
+                    return;
+
                 while(lock_.test_and_set(std::memory_order_acquire))
                     std::this_thread::yield();
 
                 list_.push_front(p);
+                --current_;
                 lock_.clear(std::memory_order_release);
             }
 
             auto fill(pointer p, int value, size_type x, size_type y) -> void
             {
+                if(moved_)
+                    return;
+
                 alloc_.fill(p, value, x, y);
             }
 
             auto release() noexcept -> void
             {
+                if(moved_) // the allocator becomes invalid once moved from
+                    return;
+
                 while(lock_.test_and_set(std::memory_order_acquire))
                     std::this_thread::yield();
 
@@ -246,6 +322,7 @@ namespace ddrf
 
                 x_ = 0;
                 y_ = 0;
+                current_.store(0);
 
                 lock_.clear(std::memory_order_release);
             }
@@ -256,6 +333,9 @@ namespace ddrf
             std::forward_list<pointer> list_;
             size_type x_;
             size_type y_;
+            size_type limit_;
+            std::atomic_size_t current_;
+            bool moved_ = false;
     };
 
     /* 3D specialization */
@@ -287,13 +367,20 @@ namespace ddrf
         public:
             pool_allocator() = default;
 
+            pool_allocator(size_type limit)
+            : alloc_{}, list_{}, x_{}, y_{}, z_{}, limit_{limit}, current_{0}
+            {}
+
             pool_allocator(pool_allocator&& other) noexcept
-            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}, x_{other.x_}, y_{other.y_}, z_{other.z_}
+            : alloc_{std::move(other.alloc_)}, list_{std::move(other.list_)}
+            , x_{other.x_}, y_{other.y_}, z_{other.z_}, limit_{other.limit_}, current_{other.current_.load()}, moved_{other.moved_}
             {
                 if(other.lock_.test_and_set())
                     lock_.test_and_set();
                 else
                     lock_.clear();
+
+                other.moved_ = true;
             }
 
             auto operator=(pool_allocator&& other) noexcept -> pool_allocator&
@@ -303,10 +390,15 @@ namespace ddrf
                 x_ = other.x_;
                 y_ = other.y_;
                 z_ = other.z_;
+                limit_ = other.limit_;
+                current_ = other.current_.load();
+                moved_ = other.moved_;
                 if(other.lock_.test_and_set())
                     lock_.test_and_set();
                 else
                     lock_.clear();
+
+                other.moved_ = true;
 
                 return *this;
             }
@@ -321,8 +413,8 @@ namespace ddrf
 
             auto allocate(size_type x, size_type y, size_type z) -> pointer
             {
-                while(lock_.test_and_set(std::memory_order_acquire))
-                    std::this_thread::yield();
+                if(moved_)
+                    return pointer{nullptr};
 
                 if(x_ == 0)
                     x_ = x;
@@ -330,6 +422,15 @@ namespace ddrf
                     y_ = y;
                 if(z_ == 0)
                     z_ = z;
+
+                if(limit_ != 0)
+                {
+                    while(current_.load() >= limit_)
+                        std::this_thread::yield();
+                }
+
+                while(lock_.test_and_set(std::memory_order_acquire))
+                    std::this_thread::yield();
 
                 auto ret = static_cast<pointer>(nullptr);
 
@@ -341,6 +442,7 @@ namespace ddrf
                     list_.pop_front();
                 }
 
+                ++current_;
                 lock_.clear(std::memory_order_release);
 
                 fill(ret, 0);
@@ -355,20 +457,30 @@ namespace ddrf
 
             auto deallocate(pointer p, size_type = 0, size_type = 0, size_type = 0) noexcept -> void
             {
+                if(moved_)
+                    return;
+
                 while(lock_.test_and_set(std::memory_order_acquire))
                     std::this_thread::yield();
 
                 list_.push_front(p);
+                --current_;
                 lock_.clear(std::memory_order_release);
             }
 
             auto fill(pointer p, int value, size_type = 0, size_type = 0, size_type = 0) -> void
             {
+                if(moved_)
+                    return;
+
                 alloc_.fill(p, value, x_, y_, z_);
             }
 
             auto release() noexcept -> void
             {
+                if(moved_) // the allocator becomes invalid once moved from
+                    return;
+
                 while(lock_.test_and_set(std::memory_order_acquire))
                     std::this_thread::yield();
 
@@ -378,6 +490,7 @@ namespace ddrf
                 x_ = 0;
                 y_ = 0;
                 z_ = 0;
+                current_.store(0);
 
                 lock_.clear(std::memory_order_release);
             }
@@ -389,7 +502,9 @@ namespace ddrf
             size_type x_;
             size_type y_;
             size_type z_;
-
+            size_type limit_;
+            std::atomic_size_t current_;
+            bool moved_ = false;
     };
 }
 
