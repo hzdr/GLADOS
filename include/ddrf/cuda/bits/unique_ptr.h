@@ -72,11 +72,24 @@ namespace ddrf
                 {}
 
                 unique_ptr(unique_ptr&& u)
-                : ptr_{std::move(u.ptr_)}, pitch_{u.pitch_}
-                , deleter_(std::is_reference<deleter_type>::value ? u.deleter_ : std::move(u.deleter_))
                 {
-                    u.ptr_ = nullptr;
-                    u.pitch_ = 0;
+                    if(u != nullptr)
+                    {
+                        ptr_ = u.ptr_;
+                        pitch_ = u.pitch_;
+                        u.ptr_ = nullptr;
+                        u.pitch_ = 0;
+
+                        if(std::is_reference<deleter_type>::value)
+                            deleter_ = u.deleter_;
+                        else
+                            deleter_ = std::move(u.deleter_);
+                    }
+                    else
+                    {
+                        ptr_ = nullptr;
+                        pitch_ = 0;
+                    }
                 }
 
                 ~unique_ptr()
@@ -90,16 +103,23 @@ namespace ddrf
                     if(ptr_ != nullptr)
                         deleter_(ptr_);
 
-                    ptr_ = std::move(r.ptr_);
-                    pitch_ = r.pitch_;
+                    if(r != nullptr)
+                    {
+                        ptr_ = r.ptr_;
+                        pitch_ = r.pitch_;
+                        r.ptr_ = nullptr;
+                        r.pitch_ = 0;
 
-                    if(std::is_reference<deleter_type>::value)
-                        deleter_ = r.deleter_;
+                        if(std::is_reference<deleter_type>::value)
+                            deleter_ = r.deleter_;
+                        else
+                            deleter_ = std::move(r.deleter_);
+                    }
                     else
-                        deleter_ = std::move(r.deleter_);
-
-                    r.ptr_ = nullptr;
-                    r.pitch_ = 0;
+                    {
+                        ptr_ = nullptr;
+                        pitch_ = 0;
+                    }
 
                     return *this;
                 }
@@ -138,7 +158,7 @@ namespace ddrf
                 template <class U>
                 auto reset(U) noexcept -> void = delete;
 
-                auto reset(std::nullptr_t p) noexcept -> void
+                auto reset(std::nullptr_t) noexcept -> void
                 {
                     auto old_ptr = ptr_;
                     ptr_ = nullptr;

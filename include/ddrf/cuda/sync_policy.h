@@ -79,7 +79,8 @@ namespace ddrf
 
                     constexpr auto size = sizeof(typename D::element_type);
 
-                    auto err = cudaMemcpy(d.get(), s.get(), x * size, detail::memcpy_direction<D::mem_location, S::mem_location>::value);
+                    auto err = cudaErrorInvalidValue;
+                    err = cudaMemcpy(d.get(), s.get(), x * size, detail::memcpy_direction<D::mem_location, S::mem_location>::value);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -100,7 +101,8 @@ namespace ddrf
                     if(S::mem_location == memory_location::host)
                         s_pitch = x * size;
 
-                    auto err = cudaMemcpy2D(d.get(), d_pitch, s.get(), s_pitch, x * size, y, detail::memcpy_direction<D::mem_location, S::mem_location>::value);
+                    auto err = cudaErrorInvalidValue;
+                    err = cudaMemcpy2D(d.get(), d_pitch, s.get(), s_pitch, x * size, y, detail::memcpy_direction<D::mem_location, S::mem_location>::value);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -115,7 +117,8 @@ namespace ddrf
                     static_assert((S::mem_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 3D copy.");
 
                     auto parms = detail::create_3D_parms(d, s, x, y, z, d_off_x, d_off_y, d_off_z, s_off_x, s_off_y, s_off_z);
-                    auto err = cudaMemcpy3D(&parms);
+                    auto err = cudaErrorInvalidValue;
+                    err = cudaMemcpy3D(&parms);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -127,7 +130,8 @@ namespace ddrf
                     static_assert(!P::pitched_memory, "The memory on the device must not be pitched for a 1D fill operation.");
 
                     constexpr auto size = sizeof(typename P::element_type);
-                    auto err = cudaMemset(p.get(), value, x * size);
+                    auto err = cudaErrorInvalidValue;
+                    err = cudaMemset(p.get(), value, x * size);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -146,7 +150,8 @@ namespace ddrf
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 2D fill operation.");
 
                     constexpr auto size = sizeof(typename P::element_type);
-                    auto err = cudaMemset2D(p.get(), p.pitch(), value, x * size, y);
+                    auto err = cudaErrorInvalidValue;
+                    err = cudaMemset2D(p.get(), p.pitch(), value, x * size, y);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }
@@ -168,7 +173,8 @@ namespace ddrf
                     auto extent = make_cudaExtent(x * size, y, z);
                     auto pitched_ptr = make_cudaPitchedPtr(p.get(), p.pitch(), x * size, y);
 
-                    auto err = cudaMemset3D(pitched_ptr, value, extent);
+                    auto err = cudaErrorInvalidValue;
+                    err = cudaMemset3D(pitched_ptr, value, extent);
                     if(err != cudaSuccess)
                         throw invalid_argument{cudaGetErrorString(err)};
                 }

@@ -128,7 +128,7 @@ namespace ddrf
 
             auto deallocate(pointer p, size_type = 0) noexcept -> void
             {
-                if(moved_)
+                if(moved_ || (p == nullptr))
                     return;
 
                 while(lock_.test_and_set(std::memory_order_acquire))
@@ -204,7 +204,7 @@ namespace ddrf
             pool_allocator() = default;
 
             pool_allocator(size_type limit)
-            : alloc_{}, list_{}, x_{}, y_{}, limit_{limit}, current_{0}
+            : alloc_{}, list_{}, x_{0}, y_{0}, limit_{limit}, current_{0}
             {}
 
             pool_allocator(pool_allocator&& other) noexcept
@@ -290,7 +290,7 @@ namespace ddrf
 
             auto deallocate(pointer p, size_type = 0, size_type = 0) noexcept -> void
             {
-                if(moved_)
+                if(moved_ || (p == nullptr))
                     return;
 
                 while(lock_.test_and_set(std::memory_order_acquire))
@@ -303,7 +303,7 @@ namespace ddrf
 
             auto fill(pointer p, int value, size_type x, size_type y) -> void
             {
-                if(moved_)
+                if(moved_ || (p == nullptr))
                     return;
 
                 alloc_.fill(p, value, x, y);
@@ -457,7 +457,7 @@ namespace ddrf
 
             auto deallocate(pointer p, size_type = 0, size_type = 0, size_type = 0) noexcept -> void
             {
-                if(moved_)
+                if(moved_ || (p == nullptr))
                     return;
 
                 while(lock_.test_and_set(std::memory_order_acquire))
