@@ -13,6 +13,7 @@
 #include <ddrf/bits/memory_location.h>
 #include <ddrf/cuda/exception.h>
 #include <ddrf/cuda/bits/pitched_ptr.h>
+#include <ddrf/cuda/bits/throw_error.h>
 
 namespace ddrf
 {
@@ -393,8 +394,9 @@ namespace ddrf
         auto make_unique_device(std::size_t n) -> device_ptr<T>
         {
             auto ptr = static_cast<T*>(nullptr);
-            if(cudaMalloc(reinterpret_cast<void**>(&ptr), n * sizeof(T)) == cudaErrorMemoryAllocation)
-                throw bad_alloc();
+            auto err = cudaMalloc(reinterpret_cast<void**>(&ptr), n * sizeof(T));
+            if(err != cudaSuccess)
+                detail::throw_error(err);
             return device_ptr<T>{ptr};
         }
 
@@ -403,8 +405,9 @@ namespace ddrf
         {
             auto ptr = static_cast<T*>(nullptr);
             auto pitch = std::size_t{};
-            if(cudaMallocPitch(reinterpret_cast<void**>(&ptr), &pitch, x * sizeof(T), y) == cudaErrorMemoryAllocation)
-                throw bad_alloc();
+            auto err = cudaMallocPitch(reinterpret_cast<void**>(&ptr), &pitch, x * sizeof(T), y);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
             return pitched_device_ptr<T>{pitched_ptr<T>{reinterpret_cast<T*>(ptr), pitch}};
         }
 
@@ -413,8 +416,9 @@ namespace ddrf
         {
             auto extent = make_cudaExtent(x * sizeof(T), y, z);
             auto cuda_pitched_ptr = cudaPitchedPtr{};
-            if(cudaMalloc3D(&cuda_pitched_ptr, extent) == cudaErrorMemoryAllocation)
-                throw bad_alloc();
+            auto err = cudaMalloc3D(&cuda_pitched_ptr, extent);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
             return pitched_device_ptr<T>{pitched_ptr<T>{reinterpret_cast<T*>(cuda_pitched_ptr.ptr), cuda_pitched_ptr.pitch}};
         }
 
@@ -440,8 +444,9 @@ namespace ddrf
         auto make_unique_pinned_host(std::size_t n) -> pinned_host_ptr<T>
         {
             auto ptr = static_cast<T*>(nullptr);
-            if(cudaMallocHost(reinterpret_cast<void**>(&ptr), n * sizeof(T)) == cudaErrorMemoryAllocation)
-                throw bad_alloc();
+            auto err = cudaMallocHost(reinterpret_cast<void**>(&ptr), n * sizeof(T));
+            if(err != cudaSuccess)
+                detail::throw_error(err);
             return pinned_host_ptr<T>{ptr};
         }
 
@@ -449,8 +454,9 @@ namespace ddrf
         auto make_unique_pinned_host(std::size_t x, std::size_t y) -> pinned_host_ptr<T>
         {
             auto ptr = static_cast<T*>(nullptr);
-            if(cudaMallocHost(reinterpret_cast<void**>(&ptr), x * y * sizeof(T)) == cudaErrorMemoryAllocation)
-                throw bad_alloc();
+            auto err = cudaMallocHost(reinterpret_cast<void**>(&ptr), x * y * sizeof(T));
+            if(err != cudaSuccess)
+                detail::throw_error(err);
             return pinned_host_ptr<T>{ptr};
         }
 
@@ -458,8 +464,9 @@ namespace ddrf
         auto make_unique_pinned_host(std::size_t x, std::size_t y, std::size_t z) -> pinned_host_ptr<T>
         {
             auto ptr = static_cast<T*>(nullptr);
-            if(cudaMallocHost(reinterpret_cast<void**>(&ptr), x * y * z * sizeof(T)) == cudaErrorMemoryAllocation)
-                throw bad_alloc();
+            auto err = cudaMallocHost(reinterpret_cast<void**>(&ptr), x * y * z * sizeof(T));
+            if(err != cudaSuccess)
+                detail::throw_error(err);
             return pinned_host_ptr<T>{ptr};
         }
 

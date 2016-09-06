@@ -11,6 +11,7 @@
 #include <ddrf/bits/memory_layout.h>
 #include <ddrf/bits/memory_location.h>
 #include <ddrf/cuda/exception.h>
+#include <ddrf/cuda/bits/throw_error.h>
 #include <ddrf/cuda/bits/unique_ptr.h>
 
 namespace ddrf
@@ -61,8 +62,9 @@ namespace ddrf
                 auto allocate(size_type n) -> pointer
                 {
                     auto p = static_cast<pointer>(nullptr);
-                    if(cudaMallocHost(reinterpret_cast<void**>(&p), n * sizeof(value_type)) == cudaErrorMemoryAllocation)
-                        throw bad_alloc{};
+                    auto err = cudaMallocHost(reinterpret_cast<void**>(&p), n * sizeof(value_type));
+                    if(err != cudaSuccess)
+                        detail::throw_error(err);
                     return pointer{p};
                 }
 
@@ -120,8 +122,9 @@ namespace ddrf
                 auto allocate(size_type x, size_type y) -> pointer
                 {
                     auto p = static_cast<pointer>(nullptr);
-                    if(cudaMallocHost(reinterpret_cast<void**>(&p), x * y * sizeof(value_type)) == cudaErrorMemoryAllocation)
-                        throw bad_alloc{};
+                    auto err = cudaMallocHost(reinterpret_cast<void**>(&p), x * y * sizeof(value_type));
+                    if(err != cudaSuccess)
+                        detail::throw_error(err);
                     return pointer{p};
                 }
 
@@ -179,8 +182,9 @@ namespace ddrf
                 auto allocate(size_type x, size_type y, size_type z) -> pointer
                 {
                     auto p = static_cast<pointer>(nullptr);
-                    if(cudaMallocHost(reinterpret_cast<void**>(&p), x * y * z * sizeof(value_type)) == cudaErrorMemoryAllocation)
-                        throw bad_alloc{};
+                    auto err = cudaMallocHost(reinterpret_cast<void**>(&p), x * y * z * sizeof(value_type));
+                    if(err != cudaSuccess)
+                        detail::throw_error(err);
                     return pointer{p};
                 }
 

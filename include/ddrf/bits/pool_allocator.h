@@ -42,7 +42,7 @@ namespace ddrf
             };
 
         public:
-            pool_allocator() noexcept = default;
+            pool_allocator() = default;
 
             pool_allocator(size_type limit) noexcept
             : alloc_{}, list_{}, n_{}, limit_{limit}, current_{0}
@@ -279,13 +279,14 @@ namespace ddrf
                 ++current_;
                 lock_.clear(std::memory_order_release);
 
+                fill(ret, 0, x_, y_);
                 return ret;
             }
 
             auto allocate_smart(size_type x, size_type y) -> smart_pointer
             {
                 auto p = allocate(x, y);
-                return smart_pointer{p, [this, p](T* ptr){ this->deallocate(p); }};
+                return smart_pointer{p, [this, p](T*){ this->deallocate(p); }};
             }
 
             auto deallocate(pointer p, size_type = 0, size_type = 0) noexcept -> void

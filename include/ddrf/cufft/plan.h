@@ -151,7 +151,7 @@ namespace ddrf
 
             private:
                 bool valid_ = false;
-                cufftHandle handle_;
+                cufftHandle handle_ = 0;
         };
     }
 }

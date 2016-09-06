@@ -10,6 +10,7 @@
 #include <ddrf/bits/memory_layout.h>
 #include <ddrf/bits/memory_location.h>
 #include <ddrf/cuda/bits/pitched_ptr.h>
+#include <ddrf/cuda/bits/throw_error.h>
 #include <ddrf/cuda/bits/unique_ptr.h>
 #include <ddrf/cuda/exception.h>
 
@@ -62,8 +63,9 @@ namespace ddrf
                 auto allocate(size_type n) -> pointer
                 {
                     auto ptr = static_cast<pointer>(nullptr);
-                    if(cudaMalloc(reinterpret_cast<void**>(&ptr), n * sizeof(value_type)) == cudaErrorMemoryAllocation)
-                        throw bad_alloc{};
+                    auto err = cudaMalloc(reinterpret_cast<void**>(&ptr), n * sizeof(value_type));
+                    if(err != cudaSuccess)
+                        detail::throw_error(err);
                     return pointer{ptr};
                 }
 
@@ -79,7 +81,7 @@ namespace ddrf
                     constexpr auto size = sizeof(T);
                     auto err = cudaMemset(p, value, n * size);
                     if(err != cudaSuccess)
-                        throw invalid_argument{cudaGetErrorString(err)};
+                        detail::throw_error(err);
                 }
         };
 
@@ -125,8 +127,9 @@ namespace ddrf
                 {
                     auto ptr = static_cast<value_type*>(nullptr);
                     auto pitch = size_type{};
-                    if(cudaMallocPitch(reinterpret_cast<void**>(&ptr), &pitch, x * sizeof(value_type), y) == cudaErrorMemoryAllocation)
-                        throw bad_alloc{};
+                    auto err = cudaMallocPitch(reinterpret_cast<void**>(&ptr), &pitch, x * sizeof(value_type), y);
+                    if(err != cudaSuccess)
+                        detail::throw_error(err);
                     return pointer{ptr, pitch};
                 }
 
@@ -142,7 +145,7 @@ namespace ddrf
                     constexpr auto size = sizeof(T);
                     auto err = cudaMemset2D(p.ptr(), p.pitch(), value, x * size, y);
                     if(err != cudaSuccess)
-                        throw invalid_argument{cudaGetErrorString(err)};
+                        detail::throw_error(err);
                 }
         };
 
@@ -188,9 +191,10 @@ namespace ddrf
                 {
                     auto extent = make_cudaExtent(x * sizeof(value_type), y, z);
                     auto pitched_ptr = cudaPitchedPtr{};
-                    if(cudaMalloc3D(&pitched_ptr, extent) == cudaErrorMemoryAllocation)
-                        throw bad_alloc{};
-                    return pointer{pitched_ptr.ptr, pitched_ptr.pitch};
+                    auto err = cudaMalloc3D(&pitched_ptr, extent);
+                    if(err != cudaSuccess)
+                        detail::throw_error(err);
+                    return pointer{reinterpret_cast<T*>(pitched_ptr.ptr), pitched_ptr.pitch};
                 }
 
                 auto deallocate(pointer p, size_type = 0, size_type = 0, size_type = 0) noexcept -> void
@@ -208,7 +212,7 @@ namespace ddrf
 
                     auto err = cudaMemset3D(pitched_ptr, value, extent);
                     if(err != cudaSuccess)
-                        throw invalid_argument{cudaGetErrorString(err)};
+                        detail::throw_error(err);
                 }
         };
 

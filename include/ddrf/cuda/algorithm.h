@@ -30,6 +30,9 @@ namespace ddrf
             policy.copy(dst, src, x, y, z, dest_off_x, dest_off_y, dest_off_z, src_off_x, src_off_y, src_off_z);
         }
 
+        /**
+         * Note that fill() will apply value to the individual bytes of the data, not the elements
+         */
         template <class SyncPolicy, class P, class... Dims>
         auto fill(SyncPolicy&& policy, P& p, int value, Dims&&... dims) -> void
         {
