@@ -1,6 +1,10 @@
 #ifndef DDRF_CUDA_BITS_MEMCPY_DIRECTION_H_
 #define DDRF_CUDA_BITS_MEMCPY_DIRECTION_H_
 
+#ifndef __CUDACC__
+#include <cuda_runtime.h>
+#endif
+
 #include <ddrf/bits/memory_location.h>
 
 namespace ddrf

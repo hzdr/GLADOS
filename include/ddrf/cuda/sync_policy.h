@@ -8,6 +8,10 @@
 #include <thread>
 #include <utility>
 
+#ifndef __CUDACC__
+#include <cuda_runtime.h>
+#endif
+
 #include <ddrf/bits/memory_location.h>
 #include <ddrf/cuda/bits/memcpy_direction.h>
 #include <ddrf/cuda/bits/throw_error.h>
