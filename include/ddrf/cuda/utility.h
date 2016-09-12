@@ -17,6 +17,43 @@ namespace ddrf
             if(err != cudaSuccess)
                 detail::throw_error(err);
         }
+
+        inline auto get_device() -> int
+        {
+            auto d = int{};
+            auto err = cudaGetDevice(&d);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
+
+            return d;
+        }
+
+        inline auto get_device_count() -> int
+        {
+            auto d = int{};
+            auto err = cudaGetDeviceCount(&d);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
+
+            return d;
+        }
+
+        inline auto create_stream() -> cudaStream_t
+        {
+            auto s = cudaStream_t{};
+            auto err = cudaStreamCreate(&s);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
+
+            return s;
+        }
+
+        inline auto synchronize_stream(cudaStream_t stream = 0) -> void
+        {
+            auto err = cudaStreamSynchronize(stream);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
+        }
     }
 }
 
