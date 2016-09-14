@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 #include <ddrf/cuda/bits/throw_error.h>
 #include <ddrf/cuda/exception.h>
@@ -30,7 +31,7 @@ namespace ddrf
         }
 
         template <typename... Args>
-        auto launch(std::size_t input_size, void(*kernel)(Args...), Args... args) -> void
+        auto launch_async(cudaStream_t stream, std::size_t input_size, void(*kernel)(Args...), Args... args) -> void
         {
             // calculate max potential blocks
             auto block_size = int{};
@@ -42,14 +43,14 @@ namespace ddrf
             // calculate de facto occupation based on input size
             auto grid_size = (input_size + block_size - 1) / block_size;
 
-            kernel<<<grid_size, block_size>>>(std::forward<Args>(args)...);
+            kernel<<<grid_size, block_size, 0, stream>>>(std::forward<Args>(args)...);
             err = cudaPeekAtLastError();
             if(err != cudaSuccess)
                 detail::throw_error(err);
         }
 
         template <typename... Args>
-        auto launch(std::size_t input_width, std::size_t input_height, void(*kernel)(Args...), Args... args) -> void
+        auto launch_async(cudaStream_t stream, std::size_t input_width, std::size_t input_height, void(*kernel)(Args...), Args... args) -> void
         {
             auto threads = detail::round_up(static_cast<unsigned int>(input_width * input_height), 1024u);
             auto blocks = threads / 1024u;
@@ -62,14 +63,14 @@ namespace ddrf
             auto grid_size = dim3{static_cast<unsigned int>((input_width + block_size.x - 1u)/block_size.x),
                                     static_cast<unsigned int>((input_height + block_size.y - 1u)/block_size.y)};
 
-            kernel<<<grid_size, block_size>>>(args...);
+            kernel<<<grid_size, block_size, 0, stream>>>(args...);
             auto err = cudaPeekAtLastError();
             if(err != cudaSuccess)
                 detail::throw_error(err);
         }
 
         template <typename... Args>
-        auto launch(std::size_t input_width, std::size_t input_height, std::size_t input_depth, void(*kernel)(Args...), Args... args) -> void
+        auto launch_async(cudaStream_t stream, std::size_t input_width, std::size_t input_height, std::size_t input_depth, void(*kernel)(Args...), Args... args) -> void
         {
             auto threads = detail::round_up(static_cast<unsigned int>(input_width * input_height * input_depth), 1024u);
             auto blocks = threads / 1024u;
@@ -85,10 +86,28 @@ namespace ddrf
                                     static_cast<unsigned int>((input_height + block_size.y - 1) / block_size.y),
                                     static_cast<unsigned int>((input_depth + block_size.z - 1) / block_size.z)};
 
-            kernel<<<grid_size, block_size>>>(args...);
+            kernel<<<grid_size, block_size, 0, stream>>>(args...);
             auto err = cudaPeekAtLastError();
             if(err != cudaSuccess)
                 detail::throw_error(err);
+        }
+
+        template <typename... Args>
+        auto launch(std::size_t input_width, void (*kernel)(Args...), Args... args) -> void
+        {
+            launch_async(0, input_width, kernel, std::forward<Args>(args)...);
+        }
+
+        template <typename... Args>
+        auto launch(std::size_t input_width, std::size_t input_height, void (*kernel)(Args...), Args... args) -> void
+        {
+            launch_async(0, input_width, input_height, kernel, std::forward<Args>(args)...);
+        }
+
+        template <typename... Args>
+        auto launch(std::size_t input_width, std::size_t input_height, std::size_t input_depth, void (*kernel)(Args...), Args... args) -> void
+        {
+            launch_async(0, input_width, input_height, input_depth, kernel, std::forward<Args>(args)...);
         }
     }
 }
