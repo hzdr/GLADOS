@@ -190,7 +190,7 @@ namespace ddrf
         {
             public:
                 template <class D, class S>
-                auto copy(D& d, const S& s, std::size_t x) const -> void
+                auto copy(D& d, const S& s, cudaStream_t stream, std::size_t x) const -> void
                 {
                     static_assert(!D::pitched_memory, "Destination memory must not be pitched for a 1D copy");
                     static_assert(!S::pitched_memory, "Source memory must not be pitched for a 1D copy");
@@ -199,27 +199,13 @@ namespace ddrf
 
                     constexpr auto size = sizeof(typename D::element_type);
 
-                    auto stream = cudaStream_t{};
-                    auto err = cudaStreamCreate(&stream);
-                    if(err != cudaSuccess)
-                        detail::throw_error(err);
-
-                    err = cudaMemcpyAsync(d.get(), s.get(), x * size, detail::memcpy_direction<D::mem_location, S::mem_location>::value, stream);
-                    if(err != cudaSuccess)
-                    {
-                        auto err2 = cudaStreamDestroy(stream);
-                        if(err2 != cudaSuccess)
-                            std::terminate(); // more CUDA errors than the user can possibly handle at this point -> time to die
-                        detail::throw_error(err);
-                    }
-
-                    err = cudaStreamDestroy(stream);
+                    auto err = cudaMemcpyAsync(d.get(), s.get(), x * size, detail::memcpy_direction<D::mem_location, S::mem_location>::value, stream);
                     if(err != cudaSuccess)
                         detail::throw_error(err);
                 }
 
                 template <class D, class S>
-                auto copy(D& d, const S& s, std::size_t x, std::size_t y) const -> void
+                auto copy(D& d, const S& s, cudaStream_t stream, std::size_t x, std::size_t y) const -> void
                 {
                     static_assert((D::mem_location == memory_location::host) || D::pitched_memory, "Destination memory on the device must be pitched for a 2D copy.");
                     static_assert((S::mem_location == memory_location::host) || S::pitched_memory, "Source memory on the device must be pitched for a 2D copy.");
@@ -227,11 +213,6 @@ namespace ddrf
                     static_assert((S::mem_location == memory_location::device) || S::pinned_memory, "Source memory on the host must be pinned for asynchronous copies.");
 
                     constexpr auto size = sizeof(typename D::element_type);
-
-                    auto stream = cudaStream_t{};
-                    auto err = cudaStreamCreate(&stream);
-                    if(err != cudaSuccess)
-                        detail::throw_error(err);
 
                     auto d_pitch = d.pitch();
                     if(D::mem_location == memory_location::host)
@@ -241,22 +222,13 @@ namespace ddrf
                     if(S::mem_location == memory_location::host)
                         s_pitch = x * size;
 
-                    err = cudaMemcpy2DAsync(d.get(), d_pitch, s.get(), s_pitch, x * size, y, detail::memcpy_direction<D::mem_location, S::mem_location>::value, stream);
-                    if(err != cudaSuccess)
-                    {
-                        auto err2 = cudaStreamDestroy(stream);
-                        if(err2 != cudaSuccess)
-                            std::terminate();
-                        detail::throw_error(err);
-                    }
-
-                    err = cudaStreamDestroy(stream);
+                    auto err = cudaMemcpy2DAsync(d.get(), d_pitch, s.get(), s_pitch, x * size, y, detail::memcpy_direction<D::mem_location, S::mem_location>::value, stream);
                     if(err != cudaSuccess)
                         detail::throw_error(err);
                 }
 
                 template <class D, class S>
-                auto copy(D& d, const S& s, std::size_t x, std::size_t y, std::size_t z,
+                auto copy(D& d, const S& s, cudaStream_t stream, std::size_t x, std::size_t y, std::size_t z,
                         std::size_t d_off_x = 0, std::size_t d_off_y = 0, std::size_t d_off_z = 0,
                         std::size_t s_off_x = 0, std::size_t s_off_y = 0, std::size_t s_off_z = 0) const -> void
                 {
@@ -267,48 +239,21 @@ namespace ddrf
 
                     auto parms = detail::create_3D_parms(d, s, x, y, z, d_off_x, d_off_y, d_off_z, s_off_x, s_off_y, s_off_z);
 
-                    auto stream = cudaStream_t{};
-                    auto err = cudaStreamCreate(&stream);
+                    auto err = cudaMemcpy3DAsync(&parms, stream);
                     if(err != cudaSuccess)
-                        detail::throw_error(err);
 
-                    err = cudaMemcpy3DAsync(&parms, stream);
-                    if(err != cudaSuccess)
-                    {
-                        auto err2 = cudaStreamDestroy(stream);
-                        if(err2 != cudaSuccess)
-                            std::terminate();
-                        detail::throw_error(err);
-                    }
-
-                    err = cudaStreamDestroy(stream);
-                    if(err != cudaSuccess)
                         detail::throw_error(err);
                 }
 
                 template <class P>
-                auto fill(P& p, int value, std::size_t x) const
+                auto fill(P& p, int value, cudaStream_t stream, std::size_t x) const
                 -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(!P::pitched_memory, "The memory on the device must not be pitched for a 1D fill operation.");
 
                     constexpr auto size = sizeof(typename P::element_type);
 
-                    auto stream = cudaStream_t{};
-                    auto err = cudaStreamCreate(&stream);
-                    if(err != cudaSuccess)
-                        detail::throw_error(err);
-
-                    err = cudaMemsetAsync(p.get(), value, x * size, stream);
-                    if(err != cudaSuccess)
-                    {
-                        auto err2 = cudaStreamDestroy(stream);
-                        if(err2 != cudaSuccess)
-                            std::terminate();
-                        detail::throw_error(err);
-                    }
-
-                    err = cudaStreamDestroy(stream);
+                    auto err = cudaMemsetAsync(p.get(), value, x * size, stream);
                     if(err != cudaSuccess)
                         detail::throw_error(err);
                 }
@@ -325,28 +270,14 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P& p, int value, std::size_t x, std::size_t y) const
+                auto fill(P& p, int value, cudaStream_t stream, std::size_t x, std::size_t y) const
                 -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 2D fill operation.");
 
                     constexpr auto size = sizeof(typename P::element_type);
 
-                    auto stream = cudaStream_t{};
-                    auto err = cudaStreamCreate(&stream);
-                    if(err != cudaSuccess)
-                        detail::throw_error(err);
-
-                    err = cudaMemset2DAsync(p.get(), p.pitch(), value, x * size, y, stream);
-                    if(err != cudaSuccess)
-                    {
-                        auto err2 = cudaStreamDestroy(stream);
-                        if(err2 != cudaSuccess)
-                            std::terminate();
-                        detail::throw_error(err);
-                    }
-
-                    err = cudaStreamDestroy(stream);
+                    auto err = cudaMemset2DAsync(p.get(), p.pitch(), value, x * size, y, stream);
                     if(err != cudaSuccess)
                         detail::throw_error(err);
                 }
@@ -361,7 +292,7 @@ namespace ddrf
                 }
 
                 template <class P>
-                auto fill(P& p, int value, std::size_t x, std::size_t y, std::size_t z) const
+                auto fill(P& p, int value, cudaStream_t stream, std::size_t x, std::size_t y, std::size_t z) const
                 -> typename std::enable_if<P::mem_location == memory_location::device, void>::type
                 {
                     static_assert(P::pitched_memory, "The memory on the device must be pitched for a 3D fill operation.");
@@ -370,21 +301,7 @@ namespace ddrf
                     auto extent = make_cudaExtent(x * size, y, z);
                     auto pitched_ptr = make_cudaPitchedPtr(p.get(), p.pitch(), x * size, y);
 
-                    auto stream = cudaStream_t{};
-                    auto err = cudaStreamCreate(&stream);
-                    if(err != cudaSuccess)
-                        detail::throw_error(err);
-
-                    err = cudaMemset3DAsync(pitched_ptr, value, extent, stream);
-                    if(err != cudaSuccess)
-                    {
-                        auto err2 = cudaStreamDestroy(stream);
-                        if(err2 != cudaSuccess)
-                            std::terminate();
-                        detail::throw_error(err);
-                    }
-
-                    err = cudaStreamDestroy(stream);
+                    auto err = cudaMemset3DAsync(pitched_ptr, value, extent, stream);
                     if(err != cudaSuccess)
                         detail::throw_error(err);
                 }
