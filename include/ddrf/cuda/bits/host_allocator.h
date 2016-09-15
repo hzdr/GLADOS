@@ -74,11 +74,6 @@ namespace ddrf
                     if(err != cudaSuccess)
                         std::exit(err);
                 }
-
-                auto fill(pointer p, int value, size_type n) -> void
-                {
-                    std::fill_n(p, n, value);
-                }
         };
 
         template <class T>
@@ -134,11 +129,6 @@ namespace ddrf
                     if(err != cudaSuccess)
                         std::exit(err);
                 }
-
-                auto fill(pointer p, int value, size_type x, size_type y) -> void
-                {
-                    std::fill_n(p, x * y, value);
-                }
         };
 
         template <class T>
@@ -193,11 +183,6 @@ namespace ddrf
                     auto err = cudaFreeHost(reinterpret_cast<void*>(p));
                     if(err != cudaSuccess)
                         std::exit(err);
-                }
-
-                auto fill(pointer p, int value, size_type x, size_type y, size_type z) -> void
-                {
-                    std::fill_n(p, x * y * z, value);
                 }
         };
 

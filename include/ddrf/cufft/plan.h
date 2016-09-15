@@ -102,6 +102,11 @@ namespace ddrf
                     cufft_exec(idata, odata, direction);
                 }
 
+                auto set_stream(cudaStream_t stream) -> void
+                {
+                    handle_result(cufftSetStream(handle_, stream));
+                }
+
             private:
                 auto handle_result(cufftResult res) const -> void
                 {

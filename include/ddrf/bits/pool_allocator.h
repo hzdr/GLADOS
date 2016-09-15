@@ -117,7 +117,6 @@ namespace ddrf
                 ++current_;
                 lock_.clear(std::memory_order_release);
 
-                fill(ret, 0);
                 return ret;
             }
 
@@ -137,14 +136,6 @@ namespace ddrf
                 list_.push_front(p);
                 --current_;
                 lock_.clear(std::memory_order_release);
-            }
-
-            auto fill(pointer p, int value, size_type = 0) -> void
-            {
-                if(moved_)
-                    return;
-
-                alloc_.fill(p, value, n_);
             }
 
             auto release() noexcept -> void
@@ -279,7 +270,6 @@ namespace ddrf
                 ++current_;
                 lock_.clear(std::memory_order_release);
 
-                fill(ret, 0, x_, y_);
                 return ret;
             }
 
@@ -300,14 +290,6 @@ namespace ddrf
                 list_.push_front(p);
                 --current_;
                 lock_.clear(std::memory_order_release);
-            }
-
-            auto fill(pointer p, int value, size_type x, size_type y) -> void
-            {
-                if(moved_ || (p == nullptr))
-                    return;
-
-                alloc_.fill(p, value, x, y);
             }
 
             auto release() noexcept -> void
@@ -446,7 +428,6 @@ namespace ddrf
                 ++current_;
                 lock_.clear(std::memory_order_release);
 
-                fill(ret, 0);
                 return ret;
             }
 
@@ -467,14 +448,6 @@ namespace ddrf
                 list_.push_front(p);
                 --current_;
                 lock_.clear(std::memory_order_release);
-            }
-
-            auto fill(pointer p, int value, size_type = 0, size_type = 0, size_type = 0) -> void
-            {
-                if(moved_)
-                    return;
-
-                alloc_.fill(p, value, x_, y_, z_);
             }
 
             auto release() noexcept -> void

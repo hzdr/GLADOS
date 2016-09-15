@@ -75,14 +75,6 @@ namespace ddrf
                     if(err != cudaSuccess)
                         std::exit(err);
                 }
-
-                auto fill(pointer p, int value, size_type n) -> void
-                {
-                    constexpr auto size = sizeof(T);
-                    auto err = cudaMemset(p, value, n * size);
-                    if(err != cudaSuccess)
-                        detail::throw_error(err);
-                }
         };
 
         template <class T>
@@ -139,14 +131,6 @@ namespace ddrf
                     if(err != cudaSuccess)
                         std::exit(err);
                 }
-
-                auto fill(pointer p, int value, size_type x, size_type y) -> void
-                {
-                    constexpr auto size = sizeof(T);
-                    auto err = cudaMemset2D(p.ptr(), p.pitch(), value, x * size, y);
-                    if(err != cudaSuccess)
-                        detail::throw_error(err);
-                }
         };
 
         template <class T>
@@ -202,17 +186,6 @@ namespace ddrf
                     auto err = cudaFree(reinterpret_cast<void*>(p.ptr()));
                     if(err != cudaSuccess)
                         std::exit(err);
-                }
-
-                auto fill(pointer p, int value, size_type x, size_type y, size_type z) -> void
-                {
-                    constexpr auto size = sizeof(T);
-                    auto extent = make_cudaExtent(x * size, y, z);
-                    auto pitched_ptr = make_cudaPitchedPtr(p.ptr(), p.pitch(), x * size, y);
-
-                    auto err = cudaMemset3D(pitched_ptr, value, extent);
-                    if(err != cudaSuccess)
-                        detail::throw_error(err);
                 }
         };
 

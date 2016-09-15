@@ -48,6 +48,16 @@ namespace ddrf
             return s;
         }
 
+        inline auto create_concurrent_stream() -> cudaStream_t
+        {
+            auto s = cudaStream_t{};
+            auto err = cudaStreamCreateWithFlags(&s, cudaStreamNonBlocking);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
+
+            return s;
+        }
+
         inline auto synchronize_stream(cudaStream_t stream = 0) -> void
         {
             auto err = cudaStreamSynchronize(stream);
