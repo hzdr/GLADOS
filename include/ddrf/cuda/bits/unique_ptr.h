@@ -333,7 +333,7 @@ namespace ddrf
                 template <class U>
                 auto reset(U) noexcept -> void = delete;
 
-                auto reset(std::nullptr_t p) noexcept -> void
+                auto reset(std::nullptr_t) noexcept -> void
                 {
                     auto old_ptr = ptr_;
                     ptr_ = nullptr;

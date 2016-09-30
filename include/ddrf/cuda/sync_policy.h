@@ -61,7 +61,7 @@ namespace ddrf
                         auto d_pos = make_cudaPos(d_pos_x, d_pos_y, d_pos_z);
                         auto s_pos = make_cudaPos(s_pos_x, s_pos_y, s_pos_z);
 
-                        auto parms = cudaMemcpy3DParms{0};
+                        auto parms = cudaMemcpy3DParms{};
                         parms.srcPos = s_pos;
                         parms.srcPtr = s_pitched;
                         parms.dstPos = d_pos;

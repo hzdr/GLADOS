@@ -1,6 +1,8 @@
 #ifndef DDRF_CUDA_UTILITY_H_
 #define DDRF_CUDA_UTILITY_H_
 
+#include <vector>
+
 #ifndef __CUDACC__
 #include <cuda_runtime.h>
 #endif
@@ -36,6 +38,28 @@ namespace ddrf
                 detail::throw_error(err);
 
             return d;
+        }
+
+        inline auto get_device_properties(int device) -> cudaDeviceProp
+        {
+            auto prop = cudaDeviceProp{};
+            auto err = cudaGetDeviceProperties(&prop, device);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
+
+            return prop;
+        }
+
+        inline auto set_valid_devices(int* devices, std::size_t len) -> void
+        {
+            auto err = cudaSetValidDevices(devices, len);
+            if(err != cudaSuccess)
+                detail::throw_error(err);
+        }
+
+        inline auto set_valid_devices(std::vector<int>& devices) -> void
+        {
+            set_valid_devices(devices.data(), devices.size());
         }
 
         inline auto create_stream() -> cudaStream_t

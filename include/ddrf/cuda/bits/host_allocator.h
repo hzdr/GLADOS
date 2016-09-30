@@ -52,7 +52,7 @@ namespace ddrf
                 host_allocator(const host_allocator& other) noexcept = default;
 
                 template <class U, memory_layout uml>
-                host_allocator(const host_allocator<U, uml>& other) noexcept
+                host_allocator(const host_allocator<U, uml>&) noexcept
                 {
                     static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible host allocator");
                 }
@@ -107,7 +107,7 @@ namespace ddrf
                 host_allocator(const host_allocator& other) noexcept = default;
 
                 template <class U, memory_layout uml>
-                host_allocator(const host_allocator<U, uml>& other) noexcept
+                host_allocator(const host_allocator<U, uml>&) noexcept
                 {
                     static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible host allocator");
                 }
@@ -162,7 +162,7 @@ namespace ddrf
                 host_allocator(const host_allocator& other) noexcept = default;
 
                 template <class U, memory_layout uml>
-                host_allocator(const host_allocator<U, uml>& other) noexcept
+                host_allocator(const host_allocator<U, uml>&) noexcept
                 {
                     static_assert(std::is_same<T, U>::value && mem_layout == uml, "Attempting to copy incompatible device allocator");
                 }
@@ -187,13 +187,13 @@ namespace ddrf
         };
 
         template <class T1, memory_layout ml1, class T2, memory_layout ml2>
-        auto operator==(const host_allocator<T1, ml1>& lhs, const host_allocator<T2, ml2>& rhs) noexcept -> bool
+        auto operator==(const host_allocator<T1, ml1>&, const host_allocator<T2, ml2>&) noexcept -> bool
         {
             return true;
         }
 
         template <class T1, memory_layout ml1, class T2, memory_layout ml2>
-        auto operator!=(const host_allocator<T1, ml1>& lhs, const host_allocator<T2, ml2>& rhs) noexcept -> bool
+        auto operator!=(const host_allocator<T1, ml1>&, const host_allocator<T2, ml2>&) noexcept -> bool
         {
             return false;
         }

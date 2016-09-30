@@ -434,7 +434,7 @@ namespace ddrf
             auto allocate_smart(size_type x, size_type y, size_type z) -> smart_pointer
             {
                 auto p = allocate(x, y, z);
-                return smart_pointer{p, [this, p](T* ptr){ this->deallocate(p); }};
+                return smart_pointer{p, [this, p](T*){ this->deallocate(p); }};
             }
 
             auto deallocate(pointer p, size_type = 0, size_type = 0, size_type = 0) noexcept -> void
