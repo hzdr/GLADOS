@@ -1,5 +1,5 @@
-#ifndef SINK_STAGE_H_
-#define SINK_STAGE_H_
+#ifndef DDRF_PIPELINE_SINK_STAGE_H_
+#define DDRF_PIPELINE_SINK_STAGE_H_
 
 #include <functional>
 #include <utility>

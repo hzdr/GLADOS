@@ -1,8 +1,8 @@
 #ifndef DDRF_PIPELINE_INPUT_SIDE_H_
 #define DDRF_PIPELINE_INPUT_SIDE_H_
 
-#include <atomic>
 #include <cstddef>
+#include <mutex>
 #include <queue>
 #include <thread>
 #include <type_traits>
@@ -32,11 +32,8 @@ namespace ddrf
                             std::this_thread::yield();
                     }
 
-                    while(lock_.test_and_set(std::memory_order_acquire))
-                        std::this_thread::yield();
-
+                    auto&& lock = std::unique_lock<std::mutex>{mutex_};
                     queue_.push(std::forward<T>(t));
-                    lock_.clear(std::memory_order_release);
                 }
 
                 auto take() -> InputT
@@ -44,20 +41,23 @@ namespace ddrf
                     while(queue_.empty())
                         std::this_thread::yield();
 
-                    while(lock_.test_and_set(std::memory_order_acquire))
-                        std::this_thread::yield();
+                    auto&& lock = std::unique_lock<std::mutex>{mutex_};
 
                     auto ret = std::move(queue_.front());
                     queue_.pop();
 
-                    lock_.clear(std::memory_order_release);
                     return ret;
                 }
 
             private:
                 queue_type queue_;
                 size_type limit_;
-                std::atomic_flag lock_ = ATOMIC_FLAG_INIT;
+                std::mutex mutex_;
+        };
+
+        template <>
+        class input_side<void>
+        {
         };
     }
 }

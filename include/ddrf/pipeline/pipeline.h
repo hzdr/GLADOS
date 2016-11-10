@@ -1,5 +1,5 @@
-#ifndef PIPELINE_H_
-#define PIPELINE_H_
+#ifndef DDRF_PIPELINE_PIPELINE_H_
+#define DDRF_PIPELINE_PIPELINE_H_
 
 #include <future>
 #include <type_traits>
@@ -8,15 +8,14 @@
 
 #include <ddrf/pipeline/input_side.h>
 #include <ddrf/pipeline/output_side.h>
-#include <ddrf/pipeline/sink_stage.h>
-#include <ddrf/pipeline/source_stage.h>
 #include <ddrf/pipeline/stage.h>
+#include <ddrf/pipeline/task_queue.h>
 
 namespace ddrf
 {
     namespace pipeline
     {
-        class pipeline
+        class pipeline_base
         {
             public:
                 template <class First, class Second>
@@ -27,33 +26,25 @@ namespace ddrf
                     f.attach(&s);
                 }
 
-                // the enable_if hack checks for the existence of the needed member types for this overload
+                template <class First, class Second, class... Rest>
+                auto connect(First& f, Second& s, Rest&... rs) const noexcept -> void
+                {
+                    connect(f, s);
+                    connect(rs...);
+                }
+
                 template <class StageT, class... Args>
-                auto make_stage(Args&&... args) const
-                -> typename std::enable_if<!std::is_same<typename StageT::input_type, void>::value &&
-                                           !std::is_same<typename StageT::output_type, void>::value, stage<StageT>>::type
+                auto make_stage(Args&&... args) const -> stage<StageT>
                 {
                     return stage<StageT>{std::forward<Args>(args)...};
                 }
+        };
 
-                template <class SourceT, class... Args>
-                auto make_stage(Args&&... args) const
-                -> typename std::enable_if<std::is_same<typename SourceT::input_type, void>::value &&
-                                           !std::is_same<typename SourceT::output_type, void>::value, source_stage<SourceT>>::type
-                {
-                    return source_stage<SourceT>{std::forward<Args>(args)...};
-                }
-
-                template <class SinkT, class... Args>
-                auto make_stage(Args&&... args) const
-                -> typename std::enable_if<!std::is_same<typename SinkT::input_type, void>::value &&
-                                           std::is_same<typename SinkT::output_type, void>::value, sink_stage<SinkT>>::type
-                {
-                    return sink_stage<SinkT>{std::forward<Args>(args)...};
-                }
-
+        class pipeline : public pipeline_base
+        {
+            public:
                 template <class Runnable>
-                auto run(Runnable& r) -> void
+                auto run(Runnable&& r) -> void
                 {
                     futures_.emplace_back(std::async(std::launch::async, &Runnable::run, &r));
                 }
@@ -80,6 +71,73 @@ namespace ddrf
 
             private:
                 std::vector<std::future<void>> futures_;
+        };
+
+        template <class TaskT>
+        class task_pipeline : public pipeline_base
+        {
+            public:
+                task_pipeline(task_queue<TaskT>* queue) noexcept
+                : queue_{queue}
+                {}
+
+                template <class... Runnables>
+                auto run(Runnables... rs) -> void
+                {
+                    exec_future_ = std::async(std::launch::async, &task_pipeline<TaskT>::internal_run, this, std::forward<Runnables>(rs)...);
+                }
+
+                auto wait() -> void
+                {
+                    try
+                    {
+                        exec_future_.get()
+                    }
+                    catch(...)
+                    {
+                        throw;
+                    }
+                }
+
+            private:
+                template <class Runnable>
+                auto launch(TaskT t, Runnable&& r) -> void
+                {
+                    r.assign_task(t);
+                    stage_futures_.emplace_back(std::async(std::launch::async, &Runnable::run, &r));
+                }
+
+                template <class Runnable, class... Runnables>
+                auto launch(TaskT t, Runnable&& r, Runnables&&... rs) -> void
+                {
+                    launch(t, std::forward<Runnable>(r));
+                    launch(t, std::forward<Runnables>(rs)...);
+                }
+
+                template <class Runnable, class... Runnables>
+                auto internal_run(Runnable&& r, Runnables&&... rs) -> void
+                {
+                    if(queue_ != nullptr)
+                    {
+                        while(!queue->empty())
+                        {
+                            auto task = queue->pop();
+                            assign_task(task, std::forward<Runnable>(r), std::forward<Runnable>(rs)...);
+
+                            launch(std::forward<Runnable>(r), std::forward<Runnables>(rs)...);
+
+                            for(auto&& f : stage_futures_)
+                                f.get();
+
+                            stage_futures_.clear();
+                        }
+                    }
+                }
+
+            private:
+                task_queue<TaskT>* queue_;
+                std::vector<std::future<void>> stage_futures_;
+                std::future<void> exec_future_;
         };
     }
 }

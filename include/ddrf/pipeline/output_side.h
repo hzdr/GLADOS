@@ -1,5 +1,5 @@
-#ifndef OUTPUT_SIDE_H_
-#define OUTPUT_SIDE_H_
+#ifndef DDRF_PIPELINE_OUTPUT_SIDE_H_
+#define DDRF_PIPELINE_OUTPUT_SIDE_H_
 
 #include <type_traits>
 #include <utility>
@@ -33,9 +33,14 @@ namespace ddrf
             private:
                 input_side<OutputT>* next_;
         };
+
+        template <>
+        class output_side<void>
+        {
+        };
     }
 }
 
 
 
-#endif /* OUTPUT_SIDE_H_ */
+#endif /* DDRF_PIPELINE_OUTPUT_SIDE_H_ */
