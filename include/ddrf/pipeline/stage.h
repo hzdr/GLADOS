@@ -1,6 +1,7 @@
 #ifndef DDRF_PIPELINE_STAGE_H_
 #define DDRF_PIPELINE_STAGE_H_
 
+#include <cstddef>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -20,7 +21,7 @@ namespace ddrf
             public:
                 using input_type = typename StageT::input_type;
                 using output_type = typename StageT::output_type;
-                using size_type = typename input_side<input_type>::size_type;
+                using size_type = std::size_t;
 
             public:
                 template <class... Args>

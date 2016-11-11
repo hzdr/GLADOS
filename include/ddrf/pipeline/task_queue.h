@@ -12,6 +12,7 @@ namespace ddrf
         template <class TaskT>
         class task_queue
         {
+            public:
                 task_queue(const std::queue<TaskT>& queue)
                 : queue_{queue}
                 {}

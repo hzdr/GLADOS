@@ -82,16 +82,16 @@ namespace ddrf
                 {}
 
                 template <class... Runnables>
-                auto run(Runnables... rs) -> void
+                auto run(Runnables&&... rs) -> void
                 {
-                    exec_future_ = std::async(std::launch::async, &task_pipeline<TaskT>::internal_run, this, std::forward<Runnables>(rs)...);
+                    exec_future_ = std::async(std::launch::async, &task_pipeline<TaskT>::internal_run<Runnables...>, this, std::ref(std::forward<Runnables>(rs))...);
                 }
 
                 auto wait() -> void
                 {
                     try
                     {
-                        exec_future_.get()
+                        exec_future_.get();
                     }
                     catch(...)
                     {
@@ -104,7 +104,8 @@ namespace ddrf
                 auto launch(TaskT t, Runnable&& r) -> void
                 {
                     r.assign_task(t);
-                    stage_futures_.emplace_back(std::async(std::launch::async, &Runnable::run, &r));
+                    using R = typename std::remove_reference<Runnable>::type;
+                    stage_futures_.emplace_back(std::async(std::launch::async, &R::run, &r));
                 }
 
                 template <class Runnable, class... Runnables>
@@ -119,12 +120,11 @@ namespace ddrf
                 {
                     if(queue_ != nullptr)
                     {
-                        while(!queue->empty())
+                        while(!queue_->empty())
                         {
-                            auto task = queue->pop();
-                            assign_task(task, std::forward<Runnable>(r), std::forward<Runnable>(rs)...);
+                            auto task = queue_->pop();
 
-                            launch(std::forward<Runnable>(r), std::forward<Runnables>(rs)...);
+                            launch(task, std::forward<Runnable>(r), std::forward<Runnables>(rs)...);
 
                             for(auto&& f : stage_futures_)
                                 f.get();
