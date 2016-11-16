@@ -110,6 +110,8 @@ namespace ddrf
             private:
                 auto handle_result(cufftResult res) const -> void
                 {
+                    #pragma GCC diagnostic push
+                    #pragma GCC diagnostic ignored "-Wswitch-enum"
                     switch(res)
                     {
                         case CUFFT_SUCCESS:         break;
@@ -122,6 +124,7 @@ namespace ddrf
                         case CUFFT_INVALID_SIZE:    throw invalid_argument{"One or more of the parameters is not a supported size."};
                         default:                    throw runtime_error{"Unknown error."};
                     }
+                    #pragma GCC diagnostic pop
                 }
 
                 auto cufft_exec(cufftComplex* idata, cufftComplex* odata, int direction) -> void

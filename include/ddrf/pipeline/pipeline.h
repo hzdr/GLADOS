@@ -1,6 +1,7 @@
 #ifndef DDRF_PIPELINE_PIPELINE_H_
 #define DDRF_PIPELINE_PIPELINE_H_
 
+#include <functional>
 #include <future>
 #include <type_traits>
 #include <utility>
@@ -18,6 +19,11 @@ namespace ddrf
         class pipeline_base
         {
             public:
+                template <class Last>
+                auto connect(Last& l) const noexcept
+                -> typename std::enable_if<std::is_base_of<input_side<typename Last::input_type>, Last>::value, void>::type
+                {}
+
                 template <class First, class Second>
                 auto connect(First& f, Second& s) const noexcept
                 -> typename std::enable_if<std::is_base_of<output_side<typename First::output_type>, First>::value &&
@@ -30,7 +36,7 @@ namespace ddrf
                 auto connect(First& f, Second& s, Rest&... rs) const noexcept -> void
                 {
                     connect(f, s);
-                    connect(rs...);
+                    connect(s, rs...);
                 }
 
                 template <class StageT, class... Args>
@@ -44,8 +50,9 @@ namespace ddrf
         {
             public:
                 template <class Runnable>
-                auto run(Runnable&& r) -> void
+                auto run(Runnable& r) -> void
                 {
+
                     futures_.emplace_back(std::async(std::launch::async, &Runnable::run, &r));
                 }
 
@@ -81,10 +88,16 @@ namespace ddrf
                 : queue_{queue}
                 {}
 
-                template <class... Runnables>
-                auto run(Runnables&&... rs) -> void
+                auto run() -> void
                 {
-                    exec_future_ = std::async(std::launch::async, &task_pipeline<TaskT>::internal_run<Runnables...>, this, std::ref(std::forward<Runnables>(rs))...);
+                    exec_future_ = std::async(std::launch::async, &task_pipeline::internal_run, this);
+                }
+
+                template <class Runnable, class... Runnables>
+                auto run(Runnable&& r, Runnables&&... rs) -> void
+                {
+                    store_funcs(std::forward<Runnable>(r));
+                    run(std::forward<Runnables>(rs)...);
                 }
 
                 auto wait() -> void
@@ -101,36 +114,41 @@ namespace ddrf
 
             private:
                 template <class Runnable>
-                auto launch(TaskT t, Runnable&& r) -> void
+                auto store_funcs(Runnable& r) -> void
                 {
-                    r.assign_task(t);
-                    using R = typename std::remove_reference<Runnable>::type;
-                    stage_futures_.emplace_back(std::async(std::launch::async, &R::run, &r));
+                    auto run_func = std::bind(&Runnable::run, &r);
+                    auto assign_func = std::bind(&Runnable::assign_task, &r, std::placeholders::_1);
+                            
+                    runs_.push_back(run_func);
+                    assigns_.push_back(assign_func);
                 }
 
-                template <class Runnable, class... Runnables>
-                auto launch(TaskT t, Runnable&& r, Runnables&&... rs) -> void
+                auto internal_run() -> void
                 {
-                    launch(t, std::forward<Runnable>(r));
-                    launch(t, std::forward<Runnables>(rs)...);
-                }
-
-                template <class Runnable, class... Runnables>
-                auto internal_run(Runnable&& r, Runnables&&... rs) -> void
-                {
-                    if(queue_ != nullptr)
+                    try
                     {
-                        while(!queue_->empty())
+                        if(queue_ != nullptr)
                         {
-                            auto task = queue_->pop();
+                            while(!queue_->empty())
+                            {
+                                auto task = queue_->pop();
 
-                            launch(task, std::forward<Runnable>(r), std::forward<Runnables>(rs)...);
+                                for(auto&& assign_func : assigns_)
+                                    assign_func(task);
 
-                            for(auto&& f : stage_futures_)
-                                f.get();
+                                for(auto&& run_func : runs_)
+                                    stage_futures_.emplace_back(std::async(std::launch::async, run_func));
 
-                            stage_futures_.clear();
+                                for(auto&& f : stage_futures_)
+                                    f.get();
+
+                                stage_futures_.clear();
+                            }
                         }
+                    }
+                    catch(...)
+                    {
+                        throw;
                     }
                 }
 
@@ -138,10 +156,11 @@ namespace ddrf
                 task_queue<TaskT>* queue_;
                 std::vector<std::future<void>> stage_futures_;
                 std::future<void> exec_future_;
+
+                std::vector<std::function<void(TaskT)>> assigns_;
+                std::vector<std::function<void()>> runs_;
         };
     }
 }
-
-
 
 #endif /* PIPELINE_H_ */

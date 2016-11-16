@@ -15,6 +15,9 @@ namespace ddrf
         {
             inline auto throw_error(cudaError_t err) -> void
             {
+                // disable warnings for obsolete cases
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wswitch-enum"
                 switch(err)
                 {
                     case cudaSuccess:
@@ -98,6 +101,7 @@ namespace ddrf
                     default:
                         throw invalid_argument{"Unknown error type"};
                 }
+                #pragma GCC diagnostic pop
             }
         }
     }
