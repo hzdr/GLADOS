@@ -41,9 +41,10 @@ namespace ddrf
                 detail::throw_error(err);
 
             // calculate de facto occupation based on input size
-            auto grid_size = (input_size + block_size - 1) / block_size;
+            auto block_size_u = static_cast<unsigned int>(block_size);
+            auto grid_size = (static_cast<unsigned int>(input_size) + block_size_u - 1u) / block_size_u;
 
-            kernel<<<grid_size, block_size, 0, stream>>>(std::forward<Args>(args)...);
+            kernel<<<grid_size, block_size_u, 0u, stream>>>(std::forward<Args>(args)...);
             err = cudaPeekAtLastError();
             if(err != cudaSuccess)
                 detail::throw_error(err);

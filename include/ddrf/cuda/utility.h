@@ -1,6 +1,7 @@
 #ifndef DDRF_CUDA_UTILITY_H_
 #define DDRF_CUDA_UTILITY_H_
 
+#include <cstddef>
 #include <vector>
 
 #ifndef __CUDACC__
@@ -52,7 +53,8 @@ namespace ddrf
 
         inline auto set_valid_devices(int* devices, std::size_t len) -> void
         {
-            auto err = cudaSetValidDevices(devices, len);
+            auto len_i = static_cast<int>(len);
+            auto err = cudaSetValidDevices(devices, len_i);
             if(err != cudaSuccess)
                 detail::throw_error(err);
         }
