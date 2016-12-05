@@ -1,27 +1,27 @@
 /*
- * This file is part of the ddrf library.
+ * This file is part of the GLADOS library.
  *
  * Copyright (C) 2016 Helmholtz-Zentrum Dresden-Rossendorf
  *
- * ddrf is free software: You can redistribute it and/or modify
+ * GLADOS is free software: You can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * ddrf is distributed in the hope that it will be useful,
+ * GLADOS is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
- * along with ddrf. If not, see <http://www.gnu.org/licenses/>.
+ * along with GLADOS. If not, see <http://www.gnu.org/licenses/>.
  * 
  * Date: 14 July 2016
  * Authors: Jan Stephan <j.stephan@hzdr.de>
  */
 
-#ifndef DDRF_BITS_POOL_ALLOCATOR_H_
-#define DDRF_BITS_POOL_ALLOCATOR_H_
+#ifndef GLADOS_BITS_POOL_ALLOCATOR_H_
+#define GLADOS_BITS_POOL_ALLOCATOR_H_
 
 #include <atomic>
 #include <forward_list>
@@ -30,9 +30,9 @@
 #include <type_traits>
 #include <utility>
 
-#include <ddrf/bits/memory_layout.h>
+#include <glados/bits/memory_layout.h>
 
-namespace ddrf
+namespace glados
 {
     template <class T, memory_layout ml, class InternalAlloc, class = typename std::enable_if<(ml == InternalAlloc::mem_layout)>::type>
     class pool_allocator {};
@@ -504,5 +504,4 @@ namespace ddrf
     };
 }
 
-
-#endif /* DDRF_BITS_POOL_ALLOCATOR_H_ */
+#endif /* GLADOS_BITS_POOL_ALLOCATOR_H_ */
