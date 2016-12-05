@@ -1,4 +1,4 @@
-# ddrf - Dresden Reconstruction Framework
+# GLADOS - Generic Library for Asynchronous Data Operations and Streaming
 
 ## Build instructions
 
