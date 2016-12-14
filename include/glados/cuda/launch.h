@@ -75,17 +75,14 @@ namespace glados
         template <typename... Args>
         auto launch_async(cudaStream_t stream, std::size_t input_width, std::size_t input_height, void(*kernel)(Args...), Args... args) -> void
         {
-            auto threads = detail::round_up(static_cast<unsigned int>(input_width * input_height), 1024u);
-            auto blocks = threads / 1024u;
+            constexpr auto dim_x = 16u;
+            constexpr auto dim_y = 16u;
+            auto block_size = dim3{dim_x, dim_y}; // for whatever reason we can't make this constexpr
 
-            auto iwb = static_cast<unsigned int>(input_width) / blocks;
-            auto dim_x = ((iwb < 32u) && (iwb != 0u)) ? iwb : detail::round_up(iwb, 32u);
-            auto ihb = static_cast<unsigned int>(input_height) / blocks;
-            auto dim_y = ((ihb < 32u) && (ihb != 0u)) ? ihb : detail::round_up(ihb, 32u);
-            auto block_size = dim3{dim_x, dim_y};
-            auto grid_size = dim3{static_cast<unsigned int>((input_width + block_size.x - 1u)/block_size.x),
-                                    static_cast<unsigned int>((input_height + block_size.y - 1u)/block_size.y)};
-
+            auto blocks_x = detail::round_up(input_width, dim_x) / dim_x;
+            auto blocks_y = detail::round_up(input_height, dim_y) / dim_y;
+            
+            auto grid_size = dim3{blocks_x, blocks_y};
             kernel<<<grid_size, block_size, 0, stream>>>(args...);
             auto err = cudaPeekAtLastError();
             if(err != cudaSuccess)
@@ -95,20 +92,16 @@ namespace glados
         template <typename... Args>
         auto launch_async(cudaStream_t stream, std::size_t input_width, std::size_t input_height, std::size_t input_depth, void(*kernel)(Args...), Args... args) -> void
         {
-            auto threads = detail::round_up(static_cast<unsigned int>(input_width * input_height * input_depth), 1024u);
-            auto blocks = threads / 1024u;
-
-            auto iwb = static_cast<unsigned int>(input_width) / blocks;
-            auto dim_x = ((iwb < 16u) && (iwb != 0u)) ? iwb : detail::round_up(iwb, 16u);
-            auto ihb = static_cast<unsigned int>(input_height) / blocks;
-            auto dim_y = ((ihb < 16u) && (ihb != 0u)) ? ihb : detail::round_up(ihb, 16u);
-            auto idb = static_cast<unsigned int>(input_depth) / blocks;
-            auto dim_z = ((idb < 4u) && (idb != 0u)) ? idb : detail::round_up(idb, 4u);
+            constexpr auto dim_x = 16u;
+            constexpr auto dim_y = 16u;
+            constexpr auto dim_z = 2u;
             auto block_size = dim3{dim_x, dim_y, dim_z};
-            auto grid_size = dim3{static_cast<unsigned int>((input_width + block_size.x - 1) / block_size.x),
-                                    static_cast<unsigned int>((input_height + block_size.y - 1) / block_size.y),
-                                    static_cast<unsigned int>((input_depth + block_size.z - 1) / block_size.z)};
 
+            auto blocks_x = detail::round_up(input_width, dim_x) / dim_x;
+            auto blocks_y = detail::round_up(input_height, dim_y) / dim_y;
+            auto blocks_z = detail::round_up(input_depth, dim_z) / dim_z;
+            
+            auto grid_size = dim3{blocks_x, blocks_y, blocks_z};
             kernel<<<grid_size, block_size, 0, stream>>>(args...);
             auto err = cudaPeekAtLastError();
             if(err != cudaSuccess)
